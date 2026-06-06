@@ -239,6 +239,49 @@
   .db-item-name { font-size: 14px; font-weight: 500; }
   .db-item-info { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
+  /* CHAT */
+  .quick-chat-btn {
+    padding:12px 10px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--text); font-size:13px; font-weight:500;
+    cursor:pointer; text-align:left; line-height:1.3; font-family:'DM Sans',sans-serif;
+    transition:all .15s;
+  }
+  .quick-chat-btn:active { background:var(--border); }
+
+  .chat-history-item {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; margin-bottom:8px; cursor:pointer; transition:all .15s;
+  }
+  .chat-history-item:active { background:var(--surface2); }
+  .chi-title { font-size:14px; font-weight:600; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chi-preview { font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chi-date { font-size:11px; color:var(--text2); margin-top:4px; }
+
+  .msg { max-width:85%; display:flex; flex-direction:column; }
+  .msg.user { align-self:flex-end; align-items:flex-end; }
+  .msg.ai { align-self:flex-start; align-items:flex-start; }
+  .msg-bubble {
+    padding:11px 14px; border-radius:18px; font-size:14px; line-height:1.6;
+    white-space:pre-wrap; word-break:break-word;
+  }
+  .msg.user .msg-bubble { background:var(--accent); color:#000; border-bottom-right-radius:4px; }
+  .msg.ai .msg-bubble { background:var(--surface2); color:var(--text); border-bottom-left-radius:4px; }
+  .msg-bubble strong { font-weight:700; }
+  .msg-time { font-size:10px; color:var(--text2); margin-top:3px; padding:0 4px; }
+
+  .msg-add-btn {
+    margin-top:8px; padding:8px 16px; border-radius:20px; border:1px solid var(--accent2);
+    background:rgba(80,200,240,.1); color:var(--accent2); font-size:13px; font-weight:600;
+    cursor:pointer; font-family:'DM Sans',sans-serif;
+  }
+  .msg-add-btn:active { background:rgba(80,200,240,.2); }
+
+  .typing-indicator { display:flex; gap:4px; padding:14px; }
+  .typing-dot { width:7px; height:7px; border-radius:50%; background:var(--text2); animation:typingPulse 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay:.2s; }
+  .typing-dot:nth-child(3) { animation-delay:.4s; }
+  @keyframes typingPulse { 0%,80%,100%{opacity:.3;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+
   /* AI ADVISOR PAGE */
   .remind-card {
     background: var(--surface); border-radius: var(--r); border: 1px solid var(--border);
@@ -475,73 +518,75 @@
       <div id="weightHistory"></div>
     </div>
 
-    <!-- PAGE 2: AI ADVISOR -->
-    <div class="page" id="page2">
-      <!-- REMINDERS SECTION -->
-      <div class="section-title">⏰ Напоминания</div>
-      <div class="remind-card">
-        <div class="remind-intro">Добавь напоминания в iPhone одним нажатием — они появятся в приложении «Напоминания»</div>
-        <div class="remind-grid">
-          <button class="remind-btn" onclick="addReminder('breakfast')"><span class="remind-icon">🌅</span><span>Завтрак</span><span class="remind-time">08:00</span></button>
-          <button class="remind-btn" onclick="addReminder('lunch')"><span class="remind-icon">☀️</span><span>Обед</span><span class="remind-time">13:00</span></button>
-          <button class="remind-btn" onclick="addReminder('dinner')"><span class="remind-icon">🌙</span><span>Ужин</span><span class="remind-time">19:00</span></button>
-          <button class="remind-btn" onclick="addReminder('snack')"><span class="remind-icon">🍎</span><span>Перекус</span><span class="remind-time">16:00</span></button>
-          <button class="remind-btn" onclick="addReminder('water')"><span class="remind-icon">💧</span><span>Вода</span><span class="remind-time">12:00</span></button>
-          <button class="remind-btn" onclick="addReminder('weight')"><span class="remind-icon">⚖️</span><span>Взвешивание</span><span class="remind-time">07:30</span></button>
+    <!-- PAGE 2: AI CHAT -->
+    <div class="page" id="page2" style="display:flex;flex-direction:column;height:calc(100dvh - 140px)">
+
+      <!-- CHAT LIST -->
+      <div id="chatListView" style="flex:1;overflow-y:auto;padding:0 20px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="section-title" style="margin:0">🤖 ИИ-советник</div>
+          <button onclick="startNewChat()" style="background:var(--accent);color:#000;border:none;border-radius:20px;padding:7px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer">+ Новый чат</button>
+        </div>
+
+        <!-- Quick start buttons -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Быстрый старт</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="quick-chat-btn" onclick="startQuickChat('что мне пообедать сегодня?')">☀️ Что пообедать?</button>
+            <button class="quick-chat-btn" onclick="startQuickChat('проанализируй мой рацион за сегодня')">📊 Анализ рациона</button>
+            <button class="quick-chat-btn" onclick="startQuickChat('сколько у меня осталось калорий и БЖУ на сегодня?')">🔥 Остаток БЖУ</button>
+            <button class="quick-chat-btn" onclick="startQuickChat('составь план питания на завтра')">📅 План на завтра</button>
+            <button class="quick-chat-btn" onclick="startQuickChat('что можно быстро приготовить на ужин из простых продуктов?')">🌙 Идеи для ужина</button>
+            <button class="quick-chat-btn" onclick="startQuickChat('какие у меня ошибки в питании?')">⚠️ Ошибки в питании</button>
+          </div>
+        </div>
+
+        <div id="chatHistoryList"></div>
+      </div>
+
+      <!-- CHAT VIEW -->
+      <div id="chatView" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <!-- Chat header -->
+        <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+          <button onclick="backToChatList()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:0">‹</button>
+          <div style="flex:1">
+            <div id="chatTitle" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div id="chatSubtitle" style="font-size:11px;color:var(--text2)"></div>
+          </div>
+          <button onclick="deleteCurrentChat()" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer">🗑</button>
+        </div>
+
+        <!-- Messages -->
+        <div id="chatMessages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px"></div>
+
+        <!-- Input -->
+        <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface)">
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <textarea id="chatInput" placeholder="Напиши вопрос или команду…"
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:11px 14px;border-radius:14px;outline:none;resize:none;max-height:100px;line-height:1.4;overflow-y:auto"
+              rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage()}"
+              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+            <button id="chatSendBtn" onclick="sendChatMessage()" style="width:44px;height:44px;border-radius:22px;border:none;background:var(--accent);color:#000;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">↑</button>
+          </div>
         </div>
       </div>
 
-      <!-- AI ADVISOR SECTION -->
-      <div class="section-title">🤖 ИИ-советник</div>
-      <div class="ai-advisor-card">
-        <div class="ai-advisor-intro">
-          <div class="ai-avatar">🧠</div>
-          <div>
-            <div style="font-weight:700;font-size:15px">Анализ рациона</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px">Персональные советы с учётом твоего профиля</div>
+      <!-- REMINDERS (collapsed at bottom of list) -->
+      <div id="reminderSection" style="padding:0 20px 20px">
+        <div class="section-title" style="cursor:pointer" onclick="toggleReminders()">⏰ Напоминания <span id="remToggle" style="font-size:12px;color:var(--text2)">▼</span></div>
+        <div id="remindersBody" style="display:none">
+          <div class="remind-card">
+            <div class="remind-grid">
+              <button class="remind-btn" onclick="addReminder('breakfast')"><span class="remind-icon">🌅</span><span>Завтрак</span><span class="remind-time">08:00</span></button>
+              <button class="remind-btn" onclick="addReminder('lunch')"><span class="remind-icon">☀️</span><span>Обед</span><span class="remind-time">13:00</span></button>
+              <button class="remind-btn" onclick="addReminder('dinner')"><span class="remind-icon">🌙</span><span>Ужин</span><span class="remind-time">19:00</span></button>
+              <button class="remind-btn" onclick="addReminder('snack')"><span class="remind-icon">🍎</span><span>Перекус</span><span class="remind-time">16:00</span></button>
+              <button class="remind-btn" onclick="addReminder('water')"><span class="remind-icon">💧</span><span>Вода</span><span class="remind-time">12:00</span></button>
+              <button class="remind-btn" onclick="addReminder('weight')"><span class="remind-icon">⚖️</span><span>Взвешивание</span><span class="remind-time">07:30</span></button>
+            </div>
           </div>
         </div>
-
-        <div class="ai-topic-label">Что анализируем:</div>
-        <div style="display:flex;gap:8px;margin-bottom:14px">
-          <button class="ai-topic-btn active" id="scopeDay" onclick="setScope('day')">📅 Весь день</button>
-          <button class="ai-topic-btn" id="scopeMeal" onclick="setScope('meal')">🍽 Один приём</button>
-          <button class="ai-topic-btn" id="scopeWeek" onclick="setScope('week')">📊 Неделя</button>
-        </div>
-
-        <div id="mealPickerWrap" style="display:none;margin-bottom:14px">
-          <div class="ai-topic-label">Выбери приём пищи:</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="ai-topic-btn active" id="mealPick_breakfast" onclick="setMealPick('breakfast')">🌅 Завтрак</button>
-            <button class="ai-topic-btn" id="mealPick_lunch" onclick="setMealPick('lunch')">☀️ Обед</button>
-            <button class="ai-topic-btn" id="mealPick_dinner" onclick="setMealPick('dinner')">🌙 Ужин</button>
-            <button class="ai-topic-btn" id="mealPick_snack" onclick="setMealPick('snack')">🍎 Перекус</button>
-          </div>
-        </div>
-
-        <div class="ai-topic-label">Фокус анализа:</div>
-        <div class="ai-topics">
-          <button class="ai-topic-btn active" onclick="selectTopic(this,'general')">📊 Общий</button>
-          <button class="ai-topic-btn" onclick="selectTopic(this,'protein')">💪 Белки</button>
-          <button class="ai-topic-btn" onclick="selectTopic(this,'balance')">⚖️ БЖУ</button>
-          <button class="ai-topic-btn" onclick="selectTopic(this,'calories')">🔥 Калории</button>
-          <button class="ai-topic-btn" onclick="selectTopic(this,'habits')">📅 Привычки</button>
-        </div>
-        <button class="ai-analyze-btn" onclick="runAIAdvisor()" id="aiAnalyzeBtn">
-          <span id="aiAnalyzeBtnText">✨ Проанализировать</span>
-        </button>
-      </div>
-
-      <!-- AI RESPONSE -->
-      <div id="aiAdvisorResult" style="display:none">
-        <div class="ai-response-card" id="aiResponseCard">
-          <div class="ai-response-header">
-            <span class="ai-response-avatar">🤖</span>
-            <span style="font-weight:700;font-size:14px">Советник</span>
-          </div>
-          <div class="ai-response-body" id="aiResponseBody"></div>
-        </div>
-        <button class="ai-new-btn" onclick="resetAdvisor()">↩ Новый вопрос</button>
       </div>
     </div>
 
@@ -1485,6 +1530,7 @@ function switchTab(i) {
   document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
   document.querySelectorAll('.page').forEach((p,j) => p.classList.toggle('active', i===j));
   document.getElementById('fabBtn').style.display = i === 0 ? '' : 'none';
+  if (i === 2) renderChatList();
 }
 
 // ─── REMINDERS ───────────────────────────────────────────────────────────────
@@ -1612,13 +1658,269 @@ function buildRationSummary() {
     daysTracked: days.length };
 }
 
-function selectTopic(btn, topic) {
-  selectedAdvisorTopic = topic;
-  document.querySelectorAll('.ai-topic-btn').forEach(b => {
-    if (!b.id.startsWith('scope') && !b.id.startsWith('mealPick')) b.classList.remove('active');
-  });
-  btn.classList.add('active');
+// ─── AI CHAT SYSTEM ──────────────────────────────────────────────────────────
+let chats = [];
+let currentChatId = null;
+
+function loadChats() {
+  return JSON.parse(localStorage.getItem('nd_chats') || '[]');
 }
+function saveChats(c) {
+  localStorage.setItem('nd_chats', JSON.stringify(c));
+}
+
+function buildSystemContext() {
+  const profile = loadProfile();
+  const goals = loadGoals();
+  const data = loadData();
+  const weights = loadWeights();
+  const latestWeight = weights.length ? weights[weights.length-1].w : null;
+
+  // Сегодняшний рацион
+  const dayData = data[todayStr()] || {};
+  let todayCal=0, todayP=0, todayF=0, todayC=0;
+  const todayMeals = [];
+  MEALS.forEach(m => {
+    const items = dayData[m.id] || [];
+    if (items.length) {
+      const mCal = items.reduce((s,i)=>s+i.cal,0);
+      todayCal += mCal; todayP += items.reduce((s,i)=>s+i.p,0);
+      todayF += items.reduce((s,i)=>s+i.f,0); todayC += items.reduce((s,i)=>s+i.c,0);
+      todayMeals.push(`${m.name}: ${items.map(i=>`${i.name}(${Math.round(i.cal)}ккал)`).join(', ')}`);
+    }
+  });
+  const remCal = Math.max(0, goals.cal - Math.round(todayCal));
+  const remP   = Math.max(0, goals.p  - Math.round(todayP));
+  const remF   = Math.max(0, goals.f  - Math.round(todayF));
+  const remC   = Math.max(0, goals.c  - Math.round(todayC));
+
+  return `Ты персональный диетолог и нутрициолог. У тебя есть все данные о пользователе.
+
+ПРОФИЛЬ: пол=${profile.gender||'не указан'}, возраст=${profile.age||'?'}, рост=${profile.height||'?'}см, вес=${latestWeight||'?'}кг, активность=${profile.activity}, цель=${profile.goal}
+
+ДНЕВНЫЕ ЦЕЛИ: ${goals.cal}ккал | Б${goals.p}г Ж${goals.f}г У${goals.c}г
+
+СЕГОДНЯ СЪЕДЕНО: ${Math.round(todayCal)}ккал | Б${Math.round(todayP)}г Ж${Math.round(todayF)}г У${Math.round(todayC)}г
+${todayMeals.length ? todayMeals.join('\n') : 'Ничего не записано'}
+
+ОСТАЛОСЬ НА СЕГОДНЯ: ${remCal}ккал | Б${remP}г Ж${remF}г У${remC}г
+
+ПРАВИЛА:
+- Отвечай на русском, дружелюбно и конкретно
+- Когда предлагаешь блюдо/продукт для добавления в дневник, в конце ответа добавь специальный блок в формате:
+  |||ADD_TO_DIARY|||{"name":"Название блюда","cal":250,"p":15,"f":8,"c":30,"meal":"breakfast"}|||
+  meal может быть: breakfast, lunch, dinner, snack
+- Если пользователь говорит "добавь", "записывай", "съел X" — сразу добавь в дневник через этот блок
+- Учитывай остаток калорий и БЖУ при рекомендациях
+- Можешь предлагать рецепты, анализировать рацион, отвечать на любые вопросы о питании`;
+}
+
+function startNewChat(initialMessage) {
+  const id = Date.now().toString();
+  const chat = {
+    id,
+    title: initialMessage ? initialMessage.slice(0,40) : 'Новый чат',
+    messages: [],
+    createdAt: new Date().toISOString(),
+  };
+  chats = loadChats();
+  chats.unshift(chat);
+  saveChats(chats);
+  openChat(id, initialMessage);
+}
+
+function startQuickChat(msg) {
+  startNewChat(msg);
+}
+
+function openChat(id, initialMessage) {
+  chats = loadChats();
+  currentChatId = id;
+  const chat = chats.find(c => c.id === id);
+  if (!chat) return;
+
+  document.getElementById('chatListView').style.display = 'none';
+  document.getElementById('reminderSection').style.display = 'none';
+  document.getElementById('chatView').style.display = 'flex';
+  document.getElementById('chatTitle').textContent = chat.title;
+  document.getElementById('chatSubtitle').textContent = new Date(chat.createdAt).toLocaleDateString('ru', {day:'numeric',month:'short'});
+
+  renderChatMessages(chat);
+
+  if (initialMessage) {
+    document.getElementById('chatInput').value = initialMessage;
+    sendChatMessage();
+  } else {
+    document.getElementById('chatInput').focus();
+  }
+}
+
+function backToChatList() {
+  currentChatId = null;
+  document.getElementById('chatView').style.display = 'none';
+  document.getElementById('chatListView').style.display = 'block';
+  document.getElementById('reminderSection').style.display = 'block';
+  renderChatList();
+}
+
+function renderChatList() {
+  chats = loadChats();
+  const el = document.getElementById('chatHistoryList');
+  if (!chats.length) { el.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Нет чатов — нажми «Новый чат» или выбери быстрый старт</div>'; return; }
+  el.innerHTML = chats.map(chat => {
+    const lastMsg = chat.messages[chat.messages.length-1];
+    const preview = lastMsg ? lastMsg.content.replace(/\|\|\|ADD_TO_DIARY\|\|\|.*?\|\|\|/g,'').slice(0,60) : 'Нет сообщений';
+    const date = new Date(chat.createdAt).toLocaleDateString('ru',{day:'numeric',month:'short'});
+    return `<div class="chat-history-item" onclick="openChat('${chat.id}')">
+      <div class="chi-title">${chat.title}</div>
+      <div class="chi-preview">${preview}</div>
+      <div class="chi-date">${date} · ${chat.messages.length} сообщений</div>
+    </div>`;
+  }).join('');
+}
+
+function renderChatMessages(chat) {
+  const el = document.getElementById('chatMessages');
+  el.innerHTML = '';
+  chat.messages.forEach(msg => appendMessage(msg.role, msg.content, false));
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendMessage(role, content, scroll=true) {
+  const el = document.getElementById('chatMessages');
+  const time = new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+
+  // Extract ADD_TO_DIARY blocks
+  const addBlocks = [];
+  const cleanContent = content.replace(/\|\|\|ADD_TO_DIARY\|\|\|(.*?)\|\|\|/g, (_, json) => {
+    try { addBlocks.push(JSON.parse(json)); } catch(e){}
+    return '';
+  }).trim();
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const htmlContent = cleanContent
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^#{1,3}\s(.+)$/gm,'<strong>$1</strong>');
+
+  div.innerHTML = `<div class="msg-bubble">${htmlContent}</div><div class="msg-time">${time}</div>`;
+
+  // Add "Add to diary" buttons for each food item
+  addBlocks.forEach(item => {
+    const mealName = MEALS.find(m=>m.id===item.meal)?.name || 'Обед';
+    const btn = document.createElement('button');
+    btn.className = 'msg-add-btn';
+    btn.textContent = `➕ Добавить в дневник: ${item.name} (${Math.round(item.cal)} ккал)`;
+    btn.onclick = () => {
+      addFoodItem(item.meal || 'lunch', {
+        name: item.name, grams: item.grams||null,
+        cal: item.cal, p: item.p||0, f: item.f||0, c: item.c||0
+      });
+      btn.textContent = `✓ Добавлено в ${mealName}`;
+      btn.style.background = 'rgba(80,200,80,.1)';
+      btn.style.borderColor = '#50c850';
+      btn.style.color = '#50c850';
+      btn.disabled = true;
+    };
+    div.appendChild(btn);
+  });
+
+  el.appendChild(div);
+  if (scroll) el.scrollTop = el.scrollHeight;
+}
+
+function showTyping() {
+  const el = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<div class="msg-bubble" style="padding:10px 14px"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function hideTyping() {
+  document.getElementById('typingIndicator')?.remove();
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const apiKey = localStorage.getItem('nd_openai_key');
+  if (!apiKey) { toast('Добавь OpenAI API ключ в Настройках ⚙️'); return; }
+
+  chats = loadChats();
+  let chat = chats.find(c => c.id === currentChatId);
+  if (!chat) return;
+
+  // Add user message
+  chat.messages.push({ role: 'user', content: text });
+  if (chat.messages.length === 1) chat.title = text.slice(0, 40);
+  saveChats(chats);
+
+  input.value = '';
+  input.style.height = 'auto';
+  appendMessage('user', text);
+  showTyping();
+
+  document.getElementById('chatSendBtn').disabled = true;
+
+  try {
+    // Build messages for API
+    const apiMessages = [
+      { role: 'system', content: buildSystemContext() },
+      ...chat.messages.map(m => ({ role: m.role, content: m.content }))
+    ];
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({ model: 'gpt-4o', max_tokens: 1200, messages: apiMessages })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const reply = data.choices?.[0]?.message?.content || '';
+    chat.messages.push({ role: 'assistant', content: reply });
+    saveChats(chats);
+
+    hideTyping();
+    appendMessage('assistant', reply);
+    document.getElementById('chatTitle').textContent = chat.title;
+  } catch(e) {
+    hideTyping();
+    appendMessage('assistant', '⚠️ Ошибка: ' + e.message);
+  }
+
+  document.getElementById('chatSendBtn').disabled = false;
+}
+
+function deleteCurrentChat() {
+  if (!confirm('Удалить этот чат?')) return;
+  chats = loadChats().filter(c => c.id !== currentChatId);
+  saveChats(chats);
+  backToChatList();
+}
+
+function toggleReminders() {
+  const body = document.getElementById('remindersBody');
+  const tog = document.getElementById('remToggle');
+  const show = body.style.display === 'none';
+  body.style.display = show ? 'block' : 'none';
+  tog.textContent = show ? '▲' : '▼';
+}
+
+// Stub functions kept for compatibility
+function selectTopic(){}
+function setScope(){}
+function setMealPick(){}
+function runAIAdvisor(){}
+function resetAdvisor(){}
+function buildRationSummary(){ return null; }
+
+
 
 async function runAIAdvisor() {
   const apiKey = localStorage.getItem('nd_openai_key');
