@@ -473,19 +473,37 @@
           <div class="ai-avatar">🧠</div>
           <div>
             <div style="font-weight:700;font-size:15px">Анализ рациона</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px">ИИ изучит твои записи за последние дни и даст персональные советы</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px">Персональные советы с учётом твоего профиля</div>
           </div>
         </div>
-        <div class="ai-topic-label">Выбери что проанализировать:</div>
+
+        <div class="ai-topic-label">Что анализируем:</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="ai-topic-btn active" id="scopeDay" onclick="setScope('day')">📅 Весь день</button>
+          <button class="ai-topic-btn" id="scopeMeal" onclick="setScope('meal')">🍽 Один приём</button>
+          <button class="ai-topic-btn" id="scopeWeek" onclick="setScope('week')">📊 Неделя</button>
+        </div>
+
+        <div id="mealPickerWrap" style="display:none;margin-bottom:14px">
+          <div class="ai-topic-label">Выбери приём пищи:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="ai-topic-btn active" id="mealPick_breakfast" onclick="setMealPick('breakfast')">🌅 Завтрак</button>
+            <button class="ai-topic-btn" id="mealPick_lunch" onclick="setMealPick('lunch')">☀️ Обед</button>
+            <button class="ai-topic-btn" id="mealPick_dinner" onclick="setMealPick('dinner')">🌙 Ужин</button>
+            <button class="ai-topic-btn" id="mealPick_snack" onclick="setMealPick('snack')">🍎 Перекус</button>
+          </div>
+        </div>
+
+        <div class="ai-topic-label">Фокус анализа:</div>
         <div class="ai-topics">
-          <button class="ai-topic-btn active" onclick="selectTopic(this,'general')">📊 Общий анализ</button>
+          <button class="ai-topic-btn active" onclick="selectTopic(this,'general')">📊 Общий</button>
           <button class="ai-topic-btn" onclick="selectTopic(this,'protein')">💪 Белки</button>
-          <button class="ai-topic-btn" onclick="selectTopic(this,'balance')">⚖️ Баланс БЖУ</button>
+          <button class="ai-topic-btn" onclick="selectTopic(this,'balance')">⚖️ БЖУ</button>
           <button class="ai-topic-btn" onclick="selectTopic(this,'calories')">🔥 Калории</button>
           <button class="ai-topic-btn" onclick="selectTopic(this,'habits')">📅 Привычки</button>
         </div>
         <button class="ai-analyze-btn" onclick="runAIAdvisor()" id="aiAnalyzeBtn">
-          <span id="aiAnalyzeBtnText">✨ Проанализировать рацион</span>
+          <span id="aiAnalyzeBtnText">✨ Проанализировать</span>
         </button>
       </div>
 
@@ -504,6 +522,41 @@
 
     <!-- PAGE 3: SETTINGS -->
     <div class="page" id="page3">
+      <div class="section-title">👤 Профиль</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="sr-label">Пол</div></div>
+          <select class="sr-input" id="profileGender" onchange="saveProfile()" style="width:110px;text-align:right">
+            <option value="">—</option>
+            <option value="мужской">Мужской</option>
+            <option value="женский">Женский</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Возраст</div><div class="sr-sub">лет</div></div>
+          <input class="sr-input" type="number" id="profileAge" placeholder="25" onchange="saveProfile()">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Рост</div><div class="sr-sub">см</div></div>
+          <input class="sr-input" type="number" id="profileHeight" placeholder="175" onchange="saveProfile()">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Активность</div></div>
+          <select class="sr-input" id="profileActivity" onchange="saveProfile()" style="width:130px;text-align:right">
+            <option value="низкая">Низкая</option>
+            <option value="средняя">Средняя</option>
+            <option value="высокая">Высокая</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Цель</div></div>
+          <select class="sr-input" id="profileGoal" onchange="saveProfile()" style="width:140px;text-align:right">
+            <option value="похудение">Похудение</option>
+            <option value="поддержание">Поддержание</option>
+            <option value="набор массы">Набор массы</option>
+          </select>
+        </div>
+      </div>
       <div class="section-title">ИИ функции</div>
       <div class="settings-card">
         <div class="settings-row">
@@ -614,6 +667,10 @@
       </div>
 
       <div id="aiMealSelectWrap" style="display:none">
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Уточнение (необязательно)</label>
+          <input class="form-input" type="text" id="photoNote" placeholder="Например: большая порция, соус отдельно…">
+        </div>
         <div class="form-label" style="margin-bottom:8px">Добавить в приём пищи:</div>
         <div class="meal-select" id="mealSelectPhoto"></div>
         <button class="submit-btn" onclick="submitPhoto()">Добавить в дневник</button>
@@ -694,107 +751,492 @@ function saveWeights(w) {
   localStorage.setItem('nd_weights', JSON.stringify(w));
 }
 
-// ─── DB (100 продуктов) ───────────────────────────────────────────────────────
+// ─── DB (400+ продуктов) ──────────────────────────────────────────────────────
 const DB = [
+  // МЯСО
   {n:'Куриная грудка',cal:113,p:23.6,f:1.9,c:0.4},
   {n:'Куриное бедро',cal:185,p:19,f:11,c:0},
-  {n:'Говядина (постная)',cal:158,p:26,f:5,c:0},
-  {n:'Свинина (лопатка)',cal:216,p:19,f:15,c:0},
+  {n:'Куриное филе запечённое',cal:137,p:25,f:3.5,c:0},
+  {n:'Куриные крылья',cal:222,p:18,f:16,c:0},
+  {n:'Куриная голень',cal:158,p:19,f:9,c:0},
+  {n:'Куриный фарш',cal:143,p:17,f:8,c:0},
+  {n:'Говядина постная',cal:158,p:26,f:5,c:0},
+  {n:'Говядина жирная',cal:218,p:23,f:14,c:0},
+  {n:'Говяжий фарш',cal:254,p:17,f:20,c:0},
+  {n:'Говяжья печень',cal:127,p:20,f:3.6,c:5},
+  {n:'Телятина',cal:131,p:22,f:4,c:0},
+  {n:'Свинина лопатка',cal:216,p:19,f:15,c:0},
+  {n:'Свинина корейка',cal:242,p:18,f:19,c:0},
+  {n:'Свиной фарш',cal:263,p:16,f:22,c:0},
+  {n:'Свиная печень',cal:109,p:19,f:3,c:4},
+  {n:'Баранина',cal:209,p:18,f:15,c:0},
+  {n:'Индейка грудка',cal:112,p:24,f:1,c:0},
+  {n:'Индейка бедро',cal:155,p:20,f:8,c:0},
+  {n:'Утка',cal:337,p:16,f:30,c:0},
+  {n:'Кролик',cal:183,p:21,f:11,c:0},
+  {n:'Печень куриная',cal:140,p:18,f:6,c:1},
+  {n:'Сердце куриное',cal:159,p:16,f:10,c:0.9},
+  // РЫБА И МОРЕПРОДУКТЫ
   {n:'Лосось',cal:208,p:20,f:13,c:0},
-  {n:'Тунец (консерва)',cal:96,p:21,f:1,c:0},
+  {n:'Сёмга слабосолёная',cal:202,p:22,f:12,c:0},
+  {n:'Тунец консерва',cal:96,p:21,f:1,c:0},
+  {n:'Тунец свежий',cal:132,p:29,f:1,c:0},
+  {n:'Треска',cal:82,p:18,f:0.6,c:0},
+  {n:'Минтай',cal:72,p:16,f:0.9,c:0},
+  {n:'Хек',cal:86,p:17,f:2,c:0},
+  {n:'Судак',cal:84,p:19,f:1,c:0},
+  {n:'Карп',cal:112,p:16,f:5,c:0},
+  {n:'Сельдь',cal:248,p:18,f:19,c:0},
+  {n:'Скумбрия',cal:191,p:18,f:13,c:0},
+  {n:'Скумбрия копчёная',cal:221,p:21,f:15,c:0},
+  {n:'Горбуша',cal:142,p:21,f:6,c:0},
+  {n:'Кета',cal:138,p:22,f:5,c:0},
+  {n:'Форель',cal:97,p:20,f:2,c:0},
+  {n:'Икра красная',cal:264,p:31,f:14,c:1.5},
+  {n:'Икра чёрная',cal:203,p:26,f:10,c:2},
+  {n:'Креветки варёные',cal:95,p:20,f:1,c:0},
+  {n:'Кальмар',cal:92,p:18,f:1.4,c:2},
+  {n:'Мидии',cal:77,p:12,f:2,c:3},
+  {n:'Краб',cal:97,p:19,f:1.8,c:0},
+  {n:'Осьминог',cal:82,p:15,f:1,c:2.2},
+  {n:'Рыбные палочки',cal:176,p:12,f:7,c:17},
+  // ЯЙЦА И МОЛОЧНОЕ
   {n:'Яйцо куриное',cal:154,p:13,f:11,c:1},
   {n:'Яичный белок',cal:52,p:11,f:0.2,c:0.7},
-  {n:'Творог 5%',cal:121,p:17,f:5,c:3},
-  {n:'Творог 0%',cal:71,p:18,f:0,c:3},
+  {n:'Яичный желток',cal:358,p:16,f:32,c:0.6},
+  {n:'Яйцо перепелиное',cal:168,p:13,f:12,c:0.6},
+  {n:'Молоко 1.5%',cal:44,p:2.8,f:1.5,c:4.7},
   {n:'Молоко 2.5%',cal:52,p:2.8,f:2.5,c:4.7},
+  {n:'Молоко 3.2%',cal:59,p:2.9,f:3.2,c:4.7},
+  {n:'Молоко цельное',cal:61,p:3.2,f:3.6,c:4.8},
   {n:'Кефир 1%',cal:40,p:3,f:1,c:4},
+  {n:'Кефир 2.5%',cal:59,p:3,f:2.5,c:4},
+  {n:'Ряженка',cal:85,p:3,f:4,c:4.2},
+  {n:'Простокваша',cal:58,p:2.8,f:3.2,c:4.1},
   {n:'Йогурт натуральный',cal:68,p:5,f:3.2,c:3.5},
-  {n:'Сыр твёрдый',cal:350,p:26,f:27,c:0},
-  {n:'Сыр Фета',cal:264,p:14,f:21,c:4},
+  {n:'Йогурт греческий',cal:115,p:9,f:6,c:3.5},
+  {n:'Йогурт фруктовый',cal:100,p:3,f:2.5,c:17},
+  {n:'Сметана 10%',cal:115,p:3,f:10,c:4},
   {n:'Сметана 15%',cal:158,p:2.5,f:15,c:3.1},
+  {n:'Сметана 20%',cal:204,p:2.8,f:20,c:3.2},
+  {n:'Сливки 10%',cal:119,p:3,f:10,c:4.5},
+  {n:'Сливки 20%',cal:205,p:2.8,f:20,c:3.7},
+  {n:'Сливки 33%',cal:322,p:2.2,f:33,c:3.5},
+  {n:'Творог 0%',cal:71,p:18,f:0,c:3},
+  {n:'Творог 5%',cal:121,p:17,f:5,c:3},
+  {n:'Творог 9%',cal:159,p:16,f:9,c:3},
+  {n:'Творог 18%',cal:232,p:15,f:18,c:3},
+  {n:'Творожная масса',cal:257,p:9,f:15,c:24},
+  {n:'Сыр твёрдый',cal:350,p:26,f:27,c:0},
+  {n:'Сыр Российский',cal:364,p:23,f:30,c:0},
+  {n:'Сыр Голландский',cal:352,p:26,f:27,c:0},
+  {n:'Сыр Гауда',cal:356,p:25,f:28,c:0},
+  {n:'Сыр Пармезан',cal:392,p:36,f:26,c:0},
+  {n:'Сыр Моцарелла',cal:280,p:18,f:22,c:2},
+  {n:'Сыр Фета',cal:264,p:14,f:21,c:4},
+  {n:'Сыр Бри',cal:334,p:21,f:28,c:0},
+  {n:'Сыр плавленый',cal:271,p:11,f:22,c:9},
+  {n:'Сыр Рикотта',cal:174,p:11,f:13,c:3},
   {n:'Масло сливочное',cal:748,p:0.5,f:82,c:0.5},
+  {n:'Масло топлёное',cal:892,p:0.2,f:99,c:0},
+  {n:'Маргарин',cal:720,p:0.3,f:80,c:1},
+  {n:'Мороженое пломбир',cal:227,p:3.5,f:13,c:24},
+  {n:'Мороженое молочное',cal:126,p:3.2,f:3.5,c:21},
+  // МАСЛА
   {n:'Масло оливковое',cal:884,p:0,f:100,c:0},
   {n:'Масло подсолнечное',cal:900,p:0,f:99.9,c:0},
+  {n:'Масло кокосовое',cal:892,p:0,f:99,c:0},
+  {n:'Масло льняное',cal:898,p:0,f:100,c:0},
+  {n:'Масло кунжутное',cal:899,p:0,f:100,c:0},
+  // КРУПЫ И ЗЕРНОВЫЕ
   {n:'Рис варёный',cal:130,p:2.7,f:0.3,c:28},
+  {n:'Рис белый сухой',cal:344,p:6.7,f:0.7,c:79},
+  {n:'Рис бурый варёный',cal:112,p:2.3,f:0.9,c:23},
   {n:'Гречка варёная',cal:92,p:3.4,f:0.6,c:20},
+  {n:'Гречка сухая',cal:313,p:12,f:3.3,c:62},
   {n:'Овсянка на воде',cal:68,p:2.5,f:1.4,c:12},
+  {n:'Овсяные хлопья сухие',cal:352,p:12,f:6,c:62},
   {n:'Макароны варёные',cal:158,p:5.5,f:0.9,c:31},
+  {n:'Макароны сухие',cal:338,p:11,f:1.3,c:70},
+  {n:'Спагетти варёные',cal:157,p:5.8,f:0.9,c:31},
+  {n:'Пшено варёное',cal:90,p:3,f:0.7,c:19},
+  {n:'Перловка варёная',cal:109,p:3.1,f:0.4,c:22},
+  {n:'Манка варёная',cal:98,p:3,f:0.8,c:21},
+  {n:'Булгур варёный',cal:83,p:3.1,f:0.2,c:19},
+  {n:'Киноа варёная',cal:120,p:4.4,f:1.9,c:22},
+  {n:'Кускус варёный',cal:112,p:3.8,f:0.2,c:23},
+  {n:'Кукурузная крупа варёная',cal:86,p:2.5,f:1,c:18},
+  {n:'Мюсли',cal:368,p:10,f:7,c:68},
+  {n:'Кукурузные хлопья',cal:357,p:7,f:1,c:85},
+  // ХЛЕБ И ВЫПЕЧКА
   {n:'Хлеб белый',cal:265,p:7.7,f:3.2,c:51},
   {n:'Хлеб чёрный',cal:207,p:6,f:1,c:40},
+  {n:'Хлеб ржаной',cal:214,p:6.5,f:1.2,c:43},
+  {n:'Хлеб цельнозерновой',cal:247,p:9,f:3.5,c:45},
+  {n:'Батон нарезной',cal:264,p:7.9,f:3,c:51},
+  {n:'Лаваш',cal:277,p:9.1,f:1.1,c:57},
+  {n:'Тост',cal:313,p:10,f:4,c:62},
+  {n:'Булочка',cal:330,p:7.5,f:8,c:55},
+  {n:'Бублик',cal:284,p:9,f:1.5,c:58},
+  {n:'Хлебцы ржаные',cal:322,p:10,f:2.5,c:66},
+  {n:'Крекер',cal:438,p:9,f:12,c:74},
+  {n:'Блины',cal:233,p:6,f:9,c:34},
+  {n:'Оладьи',cal:238,p:7,f:10,c:31},
+  {n:'Вафли',cal:350,p:7,f:12,c:55},
+  {n:'Печенье',cal:434,p:6,f:15,c:69},
+  {n:'Пряник',cal:336,p:5,f:6,c:67},
+  {n:'Зефир',cal:304,p:0.8,f:0,c:79},
+  {n:'Мармелад',cal:321,p:0.1,f:0.1,c:80},
+  {n:'Пастила',cal:310,p:0.5,f:0,c:80},
+  // КАРТОФЕЛЬ И ОВОЩИ
   {n:'Картофель варёный',cal:82,p:2,f:0.1,c:19},
   {n:'Картофель жареный',cal:268,p:3,f:14,c:35},
   {n:'Картофельное пюре',cal:94,p:2.5,f:3.3,c:14},
-  {n:'Фасоль варёная',cal:127,p:8.7,f:0.5,c:22},
-  {n:'Чечевица варёная',cal:116,p:9,f:0.4,c:20},
-  {n:'Нут варёный',cal:164,p:8.9,f:2.6,c:27},
-  {n:'Яблоко',cal:52,p:0.3,f:0.2,c:14},
-  {n:'Банан',cal:89,p:1.1,f:0.3,c:23},
-  {n:'Апельсин',cal:47,p:0.9,f:0.2,c:12},
-  {n:'Груша',cal:57,p:0.4,f:0.1,c:15},
-  {n:'Виноград',cal:67,p:0.6,f:0.4,c:17},
-  {n:'Клубника',cal:32,p:0.7,f:0.3,c:8},
-  {n:'Черника',cal:57,p:0.7,f:0.3,c:14},
-  {n:'Арбуз',cal:30,p:0.6,f:0.1,c:8},
-  {n:'Манго',cal:60,p:0.8,f:0.4,c:15},
+  {n:'Картофель запечённый',cal:93,p:2.5,f:0.1,c:21},
+  {n:'Картофель фри',cal:317,p:3.4,f:15,c:41},
+  {n:'Чипсы',cal:536,p:7,f:30,c:63},
   {n:'Помидор',cal:18,p:0.9,f:0.2,c:3.9},
   {n:'Огурец',cal:15,p:0.6,f:0.1,c:3.6},
   {n:'Морковь',cal:41,p:0.9,f:0.2,c:10},
   {n:'Брокколи',cal:34,p:2.8,f:0.4,c:7},
+  {n:'Цветная капуста',cal:25,p:1.9,f:0.3,c:5},
   {n:'Капуста белокочанная',cal:25,p:1.3,f:0.1,c:6},
+  {n:'Капуста краснокочанная',cal:26,p:1.4,f:0.2,c:5.5},
+  {n:'Капуста пекинская',cal:16,p:1.2,f:0.2,c:3},
   {n:'Перец болгарский',cal:31,p:1,f:0.3,c:6},
+  {n:'Перец болгарский красный',cal:31,p:1,f:0.3,c:6.7},
   {n:'Шпинат',cal:23,p:2.9,f:0.4,c:3.6},
   {n:'Авокадо',cal:160,p:2,f:15,c:9},
   {n:'Свёкла варёная',cal:44,p:1.7,f:0.1,c:9.6},
   {n:'Кукуруза варёная',cal:96,p:3.4,f:1.5,c:21},
+  {n:'Баклажан',cal:25,p:1.2,f:0.1,c:5.5},
+  {n:'Кабачок',cal:27,p:1.2,f:0.3,c:5.5},
+  {n:'Тыква',cal:28,p:1,f:0.1,c:6},
+  {n:'Лук репчатый',cal:41,p:1.4,f:0.2,c:8.2},
+  {n:'Лук зелёный',cal:19,p:1.3,f:0.1,c:3.2},
+  {n:'Чеснок',cal:149,p:6.4,f:0.5,c:33},
+  {n:'Редис',cal:19,p:1.2,f:0.1,c:3.4},
+  {n:'Салат айсберг',cal:14,p:0.9,f:0.1,c:2.9},
+  {n:'Салат романо',cal:17,p:1.2,f:0.3,c:3.3},
+  {n:'Руккола',cal:25,p:2.6,f:0.7,c:3.7},
+  {n:'Укроп',cal:38,p:2.5,f:0.5,c:6.3},
+  {n:'Петрушка',cal:47,p:3.7,f:0.4,c:7.6},
+  {n:'Сельдерей',cal:12,p:0.9,f:0.1,c:2.1},
+  {n:'Спаржа',cal:20,p:2.2,f:0.1,c:3.9},
+  {n:'Артишок',cal:53,p:2.9,f:0.2,c:12},
+  {n:'Горошек зелёный',cal:73,p:5,f:0.2,c:14},
+  {n:'Фасоль стручковая',cal:31,p:2,f:0.2,c:7},
+  {n:'Грибы шампиньоны',cal:27,p:4.3,f:1,c:0.1},
+  {n:'Грибы белые',cal:34,p:3.7,f:1.7,c:1.1},
+  {n:'Грибы вешенки',cal:38,p:3.3,f:0.4,c:6.1},
+  {n:'Грибы лисички',cal:38,p:1.6,f:1,c:7},
+  // БОБОВЫЕ
+  {n:'Фасоль варёная',cal:127,p:8.7,f:0.5,c:22},
+  {n:'Чечевица варёная',cal:116,p:9,f:0.4,c:20},
+  {n:'Нут варёный',cal:164,p:8.9,f:2.6,c:27},
+  {n:'Горох варёный',cal:122,p:8.6,f:0.5,c:20},
+  {n:'Соя варёная',cal:173,p:17,f:9,c:10},
+  {n:'Тофу',cal:76,p:8,f:4.8,c:1.9},
+  {n:'Эдамаме',cal:121,p:11,f:5,c:8.9},
+  // ФРУКТЫ
+  {n:'Яблоко',cal:52,p:0.3,f:0.2,c:14},
+  {n:'Банан',cal:89,p:1.1,f:0.3,c:23},
+  {n:'Апельсин',cal:47,p:0.9,f:0.2,c:12},
+  {n:'Мандарин',cal:53,p:0.8,f:0.2,c:13},
+  {n:'Грейпфрут',cal:42,p:0.8,f:0.1,c:11},
+  {n:'Лимон',cal:29,p:1.1,f:0.3,c:9},
+  {n:'Груша',cal:57,p:0.4,f:0.1,c:15},
+  {n:'Виноград',cal:67,p:0.6,f:0.4,c:17},
+  {n:'Слива',cal:46,p:0.7,f:0.3,c:12},
+  {n:'Персик',cal:39,p:0.9,f:0.1,c:10},
+  {n:'Абрикос',cal:44,p:0.9,f:0.1,c:11},
+  {n:'Нектарин',cal:44,p:1.1,f:0.3,c:11},
+  {n:'Вишня',cal:50,p:0.8,f:0.3,c:12},
+  {n:'Черешня',cal:52,p:1.1,f:0.4,c:12},
+  {n:'Клубника',cal:32,p:0.7,f:0.3,c:8},
+  {n:'Малина',cal:52,p:1.2,f:0.6,c:12},
+  {n:'Черника',cal:57,p:0.7,f:0.3,c:14},
+  {n:'Смородина чёрная',cal:44,p:1,f:0.4,c:11},
+  {n:'Смородина красная',cal:43,p:0.6,f:0.2,c:12},
+  {n:'Крыжовник',cal:44,p:0.7,f:0.2,c:12},
+  {n:'Арбуз',cal:30,p:0.6,f:0.1,c:8},
+  {n:'Дыня',cal:35,p:0.6,f:0.3,c:8.7},
+  {n:'Манго',cal:60,p:0.8,f:0.4,c:15},
+  {n:'Ананас',cal:50,p:0.5,f:0.1,c:13},
+  {n:'Киви',cal:61,p:1.1,f:0.5,c:15},
+  {n:'Папайя',cal:43,p:0.5,f:0.3,c:11},
+  {n:'Хурма',cal:67,p:0.5,f:0.4,c:17},
+  {n:'Гранат',cal:83,p:1.7,f:1.2,c:19},
+  {n:'Инжир',cal:74,p:0.8,f:0.3,c:19},
+  {n:'Финик',cal:277,p:1.8,f:0.2,c:75},
+  {n:'Чернослив',cal:240,p:2.3,f:0.7,c:57},
+  {n:'Курага',cal:241,p:3.4,f:0.4,c:63},
+  {n:'Изюм',cal:264,p:2.3,f:0.5,c:71},
+  // ОРЕХИ И СЕМЕНА
   {n:'Орехи грецкие',cal:654,p:15,f:65,c:14},
   {n:'Миндаль',cal:579,p:21,f:50,c:22},
   {n:'Арахис',cal:567,p:26,f:49,c:16},
   {n:'Кешью',cal:553,p:18,f:44,c:30},
+  {n:'Фундук',cal:628,p:15,f:61,c:17},
+  {n:'Фисташки',cal:562,p:20,f:45,c:28},
+  {n:'Кедровые орехи',cal:673,p:14,f:68,c:13},
+  {n:'Макадамия',cal:718,p:8,f:76,c:14},
+  {n:'Пекан',cal:691,p:9,f:72,c:14},
   {n:'Семена подсолнечника',cal:584,p:21,f:51,c:20},
-  {n:'Мёд',cal:304,p:0.3,f:0,c:82},
+  {n:'Семена тыквы',cal:559,p:30,f:49,c:10},
+  {n:'Семена льна',cal:534,p:18,f:42,c:29},
+  {n:'Семена чиа',cal:486,p:17,f:31,c:42},
+  {n:'Кунжут',cal:565,p:18,f:49,c:23},
+  {n:'Арахисовая паста',cal:588,p:25,f:50,c:20},
+  {n:'Миндальная паста',cal:614,p:21,f:56,c:19},
+  // СЛАДКОЕ
   {n:'Сахар',cal:387,p:0,f:0,c:100},
-  {n:'Шоколад тёмный',cal:546,p:5,f:31,c:63},
+  {n:'Мёд',cal:304,p:0.3,f:0,c:82},
+  {n:'Варенье',cal:285,p:0.3,f:0,c:74},
+  {n:'Джем',cal:261,p:0.4,f:0.1,c:68},
+  {n:'Шоколад тёмный 70%',cal:546,p:5,f:31,c:63},
   {n:'Шоколад молочный',cal:535,p:8,f:30,c:60},
-  {n:'Мороженое',cal:207,p:3.5,f:11,c:24},
-  {n:'Борщ',cal:50,p:2.3,f:2,c:7},
-  {n:'Суп куриный',cal:36,p:3,f:1.5,c:3},
-  {n:'Пельмени',cal:253,p:11,f:11,c:29},
-  {n:'Котлета жареная',cal:297,p:16,f:20,c:13},
-  {n:'Омлет',cal:154,p:10,f:12,c:2},
-  {n:'Блины',cal:233,p:6,f:9,c:34},
-  {n:'Каша манная',cal:98,p:3,f:0.8,c:21},
-  {n:'Оливье',cal:199,p:6,f:16,c:11},
-  {n:'Caesar салат',cal:90,p:5,f:7,c:4},
-  {n:'Греческий салат',cal:106,p:3,f:9,c:5},
-  {n:'Пицца (1 кусок)',cal:266,p:11,f:10,c:33},
-  {n:'Гамбургер',cal:295,p:17,f:14,c:24},
-  {n:'Хот-дог',cal:290,p:11,f:18,c:24},
-  {n:'Роллы (8 шт)',cal:302,p:12,f:7,c:46},
-  {n:'Шаурма',cal:230,p:12,f:11,c:22},
-  {n:'Чай без сахара',cal:1,p:0,f:0,c:0.2},
-  {n:'Кофе чёрный',cal:2,p:0.3,f:0,c:0},
-  {n:'Кофе с молоком',cal:42,p:2,f:2,c:4.5},
-  {n:'Сок апельсиновый',cal:45,p:0.7,f:0.2,c:10},
-  {n:'Кока-Кола',cal:42,p:0,f:0,c:11},
-  {n:'Протеиновый коктейль',cal:115,p:24,f:1.5,c:3},
-  {n:'Протеиновый батончик',cal:220,p:20,f:7,c:20},
-  {n:'Энергетик',cal:45,p:0,f:0,c:11},
-  {n:'Кефир 2.5%',cal:59,p:3,f:2.5,c:4},
-  {n:'Сосиска варёная',cal:257,p:11,f:23,c:2},
+  {n:'Шоколад белый',cal:539,p:6,f:32,c:59},
+  {n:'Шоколадная паста',cal:539,p:6,f:31,c:57},
+  {n:'Карамель',cal:382,p:0.1,f:2.5,c:91},
+  {n:'Халва',cal:523,p:12,f:30,c:57},
+  {n:'Торт бисквитный',cal:280,p:5,f:13,c:38},
+  {n:'Торт медовик',cal:350,p:5,f:18,c:44},
+  {n:'Эклер',cal:330,p:6,f:19,c:36},
+  {n:'Пончик',cal:452,p:5,f:25,c:52},
+  {n:'Круассан',cal:406,p:8,f:21,c:47},
+  // КОЛБАСНЫЕ И МЯСНЫЕ ИЗДЕЛИЯ
   {n:'Колбаса варёная',cal:257,p:12,f:22,c:2},
+  {n:'Колбаса докторская',cal:257,p:13,f:22,c:1.8},
+  {n:'Сосиска варёная',cal:257,p:11,f:23,c:2},
+  {n:'Сосиска молочная',cal:266,p:11,f:24,c:2},
   {n:'Ветчина',cal:166,p:17,f:10,c:2},
   {n:'Бекон жареный',cal:541,p:37,f:42,c:1},
-  {n:'Семга слабосолёная',cal:202,p:22,f:12,c:0},
-  {n:'Икра красная',cal:264,p:31,f:14,c:1.5},
-  {n:'Тост',cal:313,p:10,f:4,c:62},
-  {n:'Крекер',cal:438,p:9,f:12,c:74},
-  {n:'Чипсы',cal:536,p:7,f:30,c:63},
+  {n:'Салями',cal:425,p:22,f:37,c:2},
+  {n:'Карбонад',cal:175,p:17,f:11,c:0},
+  {n:'Сардельки',cal:332,p:10,f:31,c:1.5},
+  {n:'Пельмени',cal:253,p:11,f:11,c:29},
+  {n:'Вареники с картошкой',cal:198,p:5.8,f:5,c:34},
+  {n:'Вареники с творогом',cal:196,p:9,f:4,c:31},
+  {n:'Манты',cal:222,p:9,f:10,c:26},
+  {n:'Хинкали',cal:210,p:10,f:9,c:25},
+  // ГОТОВЫЕ БЛЮДА
+  {n:'Борщ',cal:50,p:2.3,f:2,c:7},
+  {n:'Щи',cal:35,p:1.8,f:1.5,c:5},
+  {n:'Суп куриный',cal:36,p:3,f:1.5,c:3},
+  {n:'Суп гороховый',cal:66,p:4,f:2,c:9},
+  {n:'Суп рассольник',cal:42,p:2.5,f:1.8,c:5},
+  {n:'Окрошка',cal:35,p:2.2,f:1.5,c:4},
+  {n:'Солянка',cal:68,p:5,f:4,c:4},
+  {n:'Котлета жареная',cal:297,p:16,f:20,c:13},
+  {n:'Котлета паровая',cal:175,p:18,f:9,c:8},
+  {n:'Отбивная свиная',cal:239,p:20,f:17,c:0},
+  {n:'Стейк говяжий',cal:217,p:26,f:12,c:0},
+  {n:'Шашлык свиной',cal:280,p:18,f:22,c:0},
+  {n:'Шашлык куриный',cal:165,p:24,f:7,c:0},
+  {n:'Жаркое',cal:195,p:14,f:13,c:8},
+  {n:'Плов',cal:150,p:7,f:6,c:19},
+  {n:'Каша гречневая с маслом',cal:165,p:5,f:6,c:24},
+  {n:'Омлет',cal:154,p:10,f:12,c:2},
+  {n:'Яичница глазунья',cal:185,p:12,f:15,c:1},
+  {n:'Яичница с колбасой',cal:235,p:14,f:19,c:2},
+  {n:'Запеканка творожная',cal:170,p:12,f:7,c:15},
+  {n:'Оливье',cal:199,p:6,f:16,c:11},
+  {n:'Винегрет',cal:74,p:1.5,f:4,c:10},
+  {n:'Салат греческий',cal:106,p:3,f:9,c:5},
+  {n:'Салат цезарь',cal:90,p:5,f:7,c:4},
+  {n:'Капуста тушёная',cal:66,p:2,f:3.8,c:7},
+  {n:'Картошка с мясом',cal:135,p:7,f:6,c:14},
+  {n:'Макароны с сыром',cal:200,p:8,f:8,c:25},
+  {n:'Макароны с мясным соусом',cal:185,p:10,f:7,c:22},
+  {n:'Гречка с курицей',cal:145,p:14,f:4,c:14},
+  {n:'Рис с овощами',cal:130,p:3,f:3,c:24},
+  {n:'Пицца маргарита',cal:250,p:10,f:9,c:33},
+  {n:'Пицца пепперони',cal:298,p:12,f:13,c:35},
+  {n:'Гамбургер',cal:295,p:17,f:14,c:24},
+  {n:'Чизбургер',cal:330,p:19,f:16,c:26},
+  {n:'Хот-дог',cal:290,p:11,f:18,c:24},
+  {n:'Шаурма',cal:230,p:12,f:11,c:22},
+  {n:'Роллы (8 шт)',cal:302,p:12,f:7,c:46},
+  {n:'Суши нигири (2 шт)',cal:93,p:5,f:1,c:16},
+  {n:'Лаваш с начинкой',cal:220,p:10,f:9,c:27},
+  {n:'Сэндвич с курицей',cal:250,p:18,f:8,c:28},
+  {n:'Бутерброд с колбасой',cal:220,p:9,f:11,c:22},
+  {n:'Бутерброд с маслом',cal:280,p:6,f:16,c:30},
+  // СОУСЫ И ПРИПРАВЫ
+  {n:'Майонез',cal:680,p:1.5,f:74,c:2.6},
+  {n:'Майонез лёгкий',cal:334,p:1,f:35,c:4},
+  {n:'Кетчуп',cal:93,p:1.8,f:0.1,c:22},
+  {n:'Горчица',cal:162,p:5.7,f:11,c:9},
+  {n:'Соус соевый',cal:61,p:10,f:0,c:8},
+  {n:'Соус томатный',cal:75,p:1.5,f:3,c:11},
+  {n:'Аджика',cal:59,p:1.8,f:3.7,c:7},
+  {n:'Уксус',cal:11,p:0,f:0,c:3},
+  // СНЕКИ
   {n:'Попкорн',cal:375,p:12,f:4,c:74},
-  {n:'Кукурузные хлопья',cal:357,p:7,f:1,c:85},
-  {n:'Мюсли',cal:368,p:10,f:7,c:68},
-  {n:'Вафли',cal:350,p:7,f:12,c:55},
-  {n:'Печенье',cal:434,p:6,f:15,c:69},
+  {n:'Сухарики',cal:397,p:12,f:10,c:67},
+  {n:'Снеки кукурузные',cal:460,p:7,f:20,c:63},
+  {n:'Поп-корн карамельный',cal:431,p:3,f:9,c:85},
+  // ПРОТЕИНОВЫЕ ПРОДУКТЫ
+  {n:'Протеиновый коктейль',cal:115,p:24,f:1.5,c:3},
+  {n:'Протеиновый батончик',cal:220,p:20,f:7,c:20},
+  {n:'BCAA',cal:10,p:2.5,f:0,c:0},
+  {n:'Протеин сывороточный (1 мерн)',cal:120,p:24,f:1,c:3},
+  // НАПИТКИ
+  {n:'Вода',cal:0,p:0,f:0,c:0},
+  {n:'Чай без сахара',cal:1,p:0,f:0,c:0.2},
+  {n:'Чай с сахаром',cal:30,p:0,f:0,c:7.5},
+  {n:'Кофе чёрный',cal:2,p:0.3,f:0,c:0},
+  {n:'Кофе с молоком',cal:42,p:2,f:2,c:4.5},
+  {n:'Капучино',cal:74,p:4,f:3.5,c:7},
+  {n:'Латте',cal:96,p:5,f:4,c:11},
+  {n:'Американо',cal:5,p:0.3,f:0,c:0.8},
+  {n:'Какао с молоком',cal:97,p:4.5,f:3.8,c:13},
+  {n:'Сок апельсиновый',cal:45,p:0.7,f:0.2,c:10},
+  {n:'Сок яблочный',cal:46,p:0.5,f:0.1,c:11},
+  {n:'Сок томатный',cal:21,p:1,f:0.1,c:4.5},
+  {n:'Сок морковный',cal:56,p:1,f:0.2,c:13},
+  {n:'Компот',cal:60,p:0.2,f:0,c:15},
+  {n:'Квас',cal:27,p:0.2,f:0,c:6},
+  {n:'Кола',cal:42,p:0,f:0,c:11},
+  {n:'Спрайт',cal:40,p:0,f:0,c:10},
+  {n:'Энергетик',cal:45,p:0,f:0,c:11},
+  {n:'Молочный коктейль',cal:100,p:3.5,f:3.5,c:15},
+  {n:'Смузи фруктовый',cal:75,p:1,f:0.5,c:18},
+
+  // МОЛОЧНЫЕ БРЕНДЫ
+  {n:'Активиа йогурт натуральный',cal:70,p:4.5,f:2.9,c:6.5},
+  {n:'Активиа йогурт фруктовый',cal:95,p:3.9,f:2.2,c:14},
+  {n:'Активиа творожок',cal:124,p:7.5,f:4.5,c:14},
+  {n:'Простоквашино молоко 2.5%',cal:52,p:2.8,f:2.5,c:4.7},
+  {n:'Простоквашино кефир 2.5%',cal:59,p:3,f:2.5,c:4},
+  {n:'Простоквашино сметана 15%',cal:158,p:2.5,f:15,c:3.1},
+  {n:'Простоквашино творог 5%',cal:121,p:17,f:5,c:3},
+  {n:'Домик в деревне молоко 2.5%',cal:52,p:2.8,f:2.5,c:4.7},
+  {n:'Домик в деревне ряженка',cal:85,p:3,f:4,c:4.2},
+  {n:'Danone йогурт питьевой',cal:80,p:3,f:1.5,c:13},
+  {n:'Actimel',cal:75,p:2.7,f:1.5,c:12},
+  {n:'Ehrmann творог 5%',cal:121,p:17,f:5,c:3},
+  {n:'Valio масло 82.5%',cal:748,p:0.5,f:82.5,c:0.5},
+  {n:'Valio творог 9%',cal:159,p:16,f:9,c:3},
+  {n:'Агуша йогурт детский',cal:78,p:2.8,f:2,c:12},
+  {n:'Чудо йогурт',cal:110,p:3.5,f:2.8,c:18},
+  {n:'Растишка йогурт',cal:95,p:3.5,f:2.5,c:14},
+  {n:'Сыр Hochland плавленый',cal:271,p:11,f:22,c:9},
+  {n:'Сыр President Бри',cal:334,p:21,f:28,c:0},
+  {n:'Сыр Ламбер',cal:377,p:24,f:31,c:0},
+  {n:'Сырок Дружба',cal:271,p:11,f:22,c:9},
+  {n:'Сырок творожный Б.Ю.Александров',cal:342,p:8,f:23,c:26},
+  {n:'Творожок Даниссимо',cal:180,p:7,f:9,c:19},
+
+  // КОЛБАСНЫЕ БРЕНДЫ
+  {n:'Докторская Мясницкий ряд',cal:257,p:13,f:22,c:1.8},
+  {n:'Молочная сосиска Останкино',cal:266,p:11,f:24,c:2},
+  {n:'Сардельки Черкизово',cal:332,p:10,f:31,c:1.5},
+  {n:'Ветчина Микоян',cal:166,p:17,f:10,c:2},
+  {n:'Карбонад Черкизово',cal:175,p:17,f:11,c:0},
+  {n:'Пельмени Сибирская коллекция',cal:253,p:11,f:11,c:29},
+  {n:'Пельмени Цезарь',cal:248,p:10,f:11,c:28},
+  {n:'Вареники Морозко',cal:198,p:5.8,f:5,c:34},
+
+  // СНЕКИ И ЧИПСЫ
+  {n:'Lay\'s классические (30г)',cal:161,p:2,f:9.9,c:17},
+  {n:'Lay\'s сметана (30г)',cal:159,p:1.8,f:9.6,c:17},
+  {n:'Pringles Original (30г)',cal:160,p:1.5,f:10,c:16},
+  {n:'Cheetos (30г)',cal:156,p:2.1,f:9,c:17},
+  {n:'Doritos (30г)',cal:150,p:2,f:7.5,c:19},
+  {n:'Читос кукурузные (30г)',cal:156,p:2.1,f:9,c:17},
+  {n:'Сухарики Хрустteam (40г)',cal:159,p:4.8,f:4,c:26},
+  {n:'Сухарики ХрусТяш (40г)',cal:156,p:4.5,f:3.8,c:26},
+  {n:'Кириешки (40г)',cal:168,p:5,f:5.5,c:25},
+  {n:'Нuts (50г)',cal:262,p:5,f:14,c:30},
+
+  // ШОКОЛАД И КОНФЕТЫ
+  {n:'Шоколад Аленка (15г)',cal:83,p:1.3,f:4.5,c:10},
+  {n:'Шоколад Мишка Косолапый (15г)',cal:80,p:1.1,f:4.5,c:9.5},
+  {n:'Шоколад Вдохновение (15г)',cal:82,p:1,f:5,c:9},
+  {n:'Конфета Мишка Косолапый',cal:130,p:1.8,f:7,c:16},
+  {n:'Конфета Белочка',cal:125,p:1.5,f:6.5,c:16},
+  {n:'Конфета Коровка',cal:120,p:1.5,f:4,c:20},
+  {n:'Конфета Птичье молоко',cal:126,p:2,f:5,c:19},
+  {n:'Батончик Сникерс (50г)',cal:245,p:4,f:12,c:32},
+  {n:'Батончик Твикс (50г)',cal:247,p:2.3,f:12,c:33},
+  {n:'Батончик Марс (50г)',cal:228,p:2.2,f:9,c:35},
+  {n:'Батончик Баунти (57г)',cal:264,p:2.4,f:14,c:34},
+  {n:'Батончик KitKat (41.5г)',cal:215,p:2.8,f:11,c:27},
+  {n:'Шоколад Milka (15г)',cal:79,p:1.2,f:4.4,c:9.2},
+  {n:'Шоколад Lindt 70% (15г)',cal:82,p:1.3,f:5.3,c:7},
+  {n:'Зефир Шармэль (30г)',cal:91,p:0.5,f:0,c:23},
+  {n:'Мармелад Харибо (10г)',cal:34,p:0.7,f:0,c:8},
+  {n:'Пастила Коломенская (20г)',cal:62,p:0.1,f:0,c:16},
+
+  // ПЕЧЕНЬЕ И ВЫПЕЧКА
+  {n:'Печенье Юбилейное (15г)',cal:66,p:1,f:2.3,c:10},
+  {n:'Печенье Орео (11г)',cal:53,p:0.6,f:2.3,c:7.8},
+  {n:'Печенье Мария (10г)',cal:41,p:0.7,f:1,c:7},
+  {n:'Крекер Tuc (15г)',cal:66,p:1.3,f:3,c:8.5},
+  {n:'Вафли Артек (30г)',cal:135,p:1.8,f:6,c:19},
+  {n:'Пряник Тульский (100г)',cal:336,p:5,f:6,c:67},
+  {n:'Рулет Швейцарский (30г)',cal:110,p:1.5,f:4.5,c:17},
+
+  // НАПИТКИ БРЕНДЫ
+  {n:'Coca-Cola (330мл)',cal:139,p:0,f:0,c:35},
+  {n:'Coca-Cola Zero (330мл)',cal:1,p:0,f:0,c:0.1},
+  {n:'Pepsi (330мл)',cal:145,p:0,f:0,c:37},
+  {n:'Sprite (330мл)',cal:132,p:0,f:0,c:33},
+  {n:'Fanta (330мл)',cal:148,p:0,f:0,c:37},
+  {n:'Red Bull (250мл)',cal:113,p:1,f:0,c:28},
+  {n:'Monster Energy (500мл)',cal:230,p:0,f:0,c:57},
+  {n:'Я сок яблочный (200мл)',cal:92,p:1,f:0.2,c:22},
+  {n:'Rich сок апельсиновый (200мл)',cal:90,p:1.4,f:0.4,c:20},
+  {n:'Добрый сок (200мл)',cal:88,p:0.6,f:0,c:22},
+  {n:'Lipton чай (500мл)',cal:95,p:0,f:0,c:24},
+  {n:'Нескафе 3в1 (1 пакетик)',cal:51,p:0.5,f:1.5,c:9},
+  {n:'Jacobs 3в1 (1 пакетик)',cal:54,p:0.5,f:1.5,c:9.5},
+  {n:'Milo (30г)',cal:114,p:2.3,f:1.5,c:23},
+  {n:'Овсяный напиток Nemoloko (200мл)',cal:74,p:1.6,f:1.6,c:13},
+  {n:'Mixit протеин (1 мерн 30г)',cal:114,p:22,f:1.2,c:4},
+
+  // ФАСТФУД
+  {n:'Вкусно и точка Биг Мак',cal:503,p:26,f:25,c:45},
+  {n:'Вкусно и точка Картошка большая',cal:444,p:5.5,f:20,c:61},
+  {n:'Вкусно и точка Чикенбургер',cal:342,p:18,f:14,c:36},
+  {n:'Вкусно и точка Фиш Ролл',cal:330,p:13,f:15,c:35},
+  {n:'KFC Крылышки (100г)',cal:271,p:19,f:18,c:9},
+  {n:'KFC Картошка (100г)',cal:292,p:3.3,f:14,c:39},
+  {n:'KFC Бургер Зингер',cal:490,p:27,f:22,c:46},
+  {n:'Додо Пицца Маргарита (1 кусок)',cal:220,p:9,f:7,c:30},
+  {n:'Додо Пицца Пепперони (1 кусок)',cal:260,p:11,f:11,c:30},
+  {n:'Бургер Кинг Воппер',cal:630,p:29,f:35,c:51},
+  {n:'Бургер Кинг картошка средняя',cal:410,p:5,f:18,c:57},
+  {n:'Subway Клаб 15см',cal:310,p:23,f:7,c:40},
+  {n:'Шоколадница капучино 300мл',cal:148,p:7,f:7,c:15},
+  {n:'Чайхона плов (порция)',cal:450,p:18,f:18,c:55},
+
+  // КАШИ И ЗАВТРАКИ
+  {n:'Быстров овсянка с фруктами',cal:352,p:10,f:5.7,c:67},
+  {n:'Nestle Fitness хлопья (30г)',cal:112,p:3,f:0.7,c:24},
+  {n:'Nesquik хлопья (30г)',cal:117,p:2.4,f:1.1,c:25},
+  {n:'Muesli Dr.Oetker (50г)',cal:184,p:5,f:3.5,c:34},
+  {n:'Каша Увелка гречневая (40г сухой)',cal:125,p:4.8,f:1.3,c:25},
+  {n:'Каша Myllyn Paras овсяная (40г)',cal:141,p:4.8,f:2.4,c:25},
+
+  // СОУСЫ БРЕНДЫ
+  {n:'Майонез Махеев 67% (20г)',cal:136,p:0.3,f:14.8,c:0.5},
+  {n:'Майонез Слобода 67% (20г)',cal:136,p:0.3,f:14.8,c:0.5},
+  {n:'Кетчуп Heinz (20г)',cal:19,p:0.4,f:0,c:4.4},
+  {n:'Кетчуп Балтимор (20г)',cal:18,p:0.3,f:0,c:4.2},
+  {n:'Горчица Heinz (10г)',cal:16,p:0.6,f:1.1,c:0.9},
+  {n:'Соус Табаско (5г)',cal:1,p:0,f:0,c:0.2},
+
+  // ХЛЕБ БРЕНДЫ
+  {n:'Хлеб Дарницкий Коломенское',cal:210,p:6.5,f:1.2,c:42},
+  {n:'Хлебцы Finn Crisp (10г)',cal:35,p:1.2,f:0.3,c:7},
+  {n:'Хлебцы Dr.Korner гречневые (10г)',cal:34,p:1,f:0.3,c:7},
+  {n:'Хлеб Бородинский (30г)',cal:63,p:1.9,f:0.4,c:13},
 ];
+
+
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
@@ -970,13 +1412,34 @@ function addReminder(type) {
   setTimeout(() => toast(`Открываю Напоминания: "${cfg.title}"`), 300);
 }
 
+function saveProfile() {
+  const profile = {
+    gender: document.getElementById('profileGender').value,
+    age: document.getElementById('profileAge').value,
+    height: document.getElementById('profileHeight').value,
+    activity: document.getElementById('profileActivity').value,
+    goal: document.getElementById('profileGoal').value,
+  };
+  localStorage.setItem('nd_profile', JSON.stringify(profile));
+  toast('Профиль сохранён ✓');
+}
+function loadProfile() {
+  return JSON.parse(localStorage.getItem('nd_profile') || '{"gender":"","age":"","height":"","activity":"средняя","goal":"поддержание"}');
+}
+
 // ─── AI ADVISOR ───────────────────────────────────────────────────────────────
 let selectedAdvisorTopic = 'general';
+let advisorScope = 'day';
+let advisorMealPick = 'breakfast';
 
-function selectTopic(btn, topic) {
-  selectedAdvisorTopic = topic;
-  document.querySelectorAll('.ai-topic-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+function setScope(scope) {
+  advisorScope = scope;
+  ['day','meal','week'].forEach(s => document.getElementById('scope'+s.charAt(0).toUpperCase()+s.slice(1))?.classList.toggle('active', s===scope));
+  document.getElementById('mealPickerWrap').style.display = scope === 'meal' ? 'block' : 'none';
+}
+function setMealPick(meal) {
+  advisorMealPick = meal;
+  ['breakfast','lunch','dinner','snack'].forEach(m => document.getElementById('mealPick_'+m)?.classList.toggle('active', m===meal));
 }
 
 function buildRationSummary() {
@@ -1004,40 +1467,118 @@ function buildRationSummary() {
     daysTracked: days.length };
 }
 
-const TOPIC_PROMPTS = {
-  general:  'Дай общий анализ рациона. Что хорошо, что стоит улучшить? Конкретные практические советы.',
-  protein:  'Сфокусируйся на потреблении белка. Достаточно ли его? Как улучшить? Приведи примеры продуктов.',
-  balance:  'Проанализируй баланс БЖУ. Соответствует ли он целям? Что скорректировать?',
-  calories: 'Проанализируй калорийность. Есть ли дефицит или профицит? Как оптимизировать?',
-  habits:   'Проанализируй пищевые привычки: регулярность питания, пропуски приёмов пищи, паттерны.',
-};
+function selectTopic(btn, topic) {
+  selectedAdvisorTopic = topic;
+  document.querySelectorAll('.ai-topic-btn').forEach(b => {
+    if (!b.id.startsWith('scope') && !b.id.startsWith('mealPick')) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+}
 
 async function runAIAdvisor() {
-  const summary = buildRationSummary();
-  if (!summary) { toast('Нет данных — сначала запиши несколько приёмов пищи'); return; }
+  const apiKey = localStorage.getItem('nd_openai_key');
+  if (!apiKey) { toast('Добавь OpenAI API ключ в Настройках ⚙️'); return; }
+
+  const data = loadData();
+  const goals = loadGoals();
+  const profile = loadProfile();
+  const weights = loadWeights().slice(-7);
+  const latestWeight = weights.length ? weights[weights.length-1].w : null;
+
   const btn = document.getElementById('aiAnalyzeBtn');
   const btnText = document.getElementById('aiAnalyzeBtnText');
   btn.disabled = true;
   btnText.textContent = '⏳ Анализирую…';
 
-  const daysText = summary.days.map(d =>
-    `${d.date}: ${d.cal} ккал, Б${d.p}г Ж${d.f}г У${d.c}г (${d.meals} записей)`
-  ).join('\n');
+  // Build profile string
+  const profileStr = [
+    profile.gender ? `Пол: ${profile.gender}` : '',
+    profile.age ? `Возраст: ${profile.age} лет` : '',
+    profile.height ? `Рост: ${profile.height} см` : '',
+    latestWeight ? `Вес: ${latestWeight} кг` : '',
+    `Активность: ${profile.activity}`,
+    `Цель: ${profile.goal}`,
+    `Дневная норма: ${goals.cal} ккал, Б${goals.p}г Ж${goals.f}г У${goals.c}г`,
+  ].filter(Boolean).join(' | ');
 
-  const systemPrompt = `Ты персональный диетолог-советник. Анализируй рацион конкретно и дружелюбно.
-Давай 3–5 чётких практических советов. Используй эмодзи для структуры.
-Отвечай на русском языке. Будь конкретным — называй продукты, цифры, примеры.
-Не пиши вступление — сразу к делу.`;
+  let dataStr = '';
+  let contextStr = '';
 
-  const userPrompt = `Данные за последние ${summary.daysTracked} дней:\n${daysText}\n\nСредние показатели: ${summary.avgCal} ккал/день, Б${summary.avgP}г Ж${summary.avgF}г У${summary.avgC}г\n\nЦели: ${summary.goals.cal} ккал, Б${summary.goals.p}г Ж${summary.goals.f}г У${summary.goals.c}г\n${summary.latestWeight ? `\nВес: ${summary.latestWeight} кг` : ''}\n\nЗадача: ${TOPIC_PROMPTS[selectedAdvisorTopic]}`;
+  if (advisorScope === 'meal') {
+    // Single meal analysis
+    const mealNames = {breakfast:'Завтрак',lunch:'Обед',dinner:'Ужин',snack:'Перекус'};
+    const dayData = data[currentDate] || {};
+    const items = dayData[advisorMealPick] || [];
+    if (!items.length) { toast(`Нет записей в "${mealNames[advisorMealPick]}"`); btn.disabled=false; btnText.textContent='✨ Проанализировать'; return; }
+    const cal = items.reduce((s,i)=>s+i.cal,0);
+    const p = items.reduce((s,i)=>s+i.p,0);
+    const f = items.reduce((s,i)=>s+i.f,0);
+    const c = items.reduce((s,i)=>s+i.c,0);
+    const itemsList = items.map(i=>`• ${i.name}${i.grams?` (${Math.round(i.grams)}г)`:''}: ${Math.round(i.cal)} ккал, Б${i.p.toFixed(1)}г Ж${i.f.toFixed(1)}г У${i.c.toFixed(1)}г`).join('\n');
+    // Остаток дня
+    let dayTotal = {cal:0,p:0,f:0,c:0};
+    MEALS.forEach(m => { (dayData[m.id]||[]).forEach(item=>{dayTotal.cal+=item.cal;dayTotal.p+=item.p;dayTotal.f+=item.f;dayTotal.c+=item.c;}); });
+    dataStr = `Приём пищи: ${mealNames[advisorMealPick]}\nСостав:\n${itemsList}\nИтого: ${Math.round(cal)} ккал, Б${p.toFixed(1)}г Ж${f.toFixed(1)}г У${c.toFixed(1)}г`;
+    contextStr = `Уже съедено за весь день: ${Math.round(dayTotal.cal)} ккал из ${goals.cal} ккал (осталось ${Math.round(goals.cal-dayTotal.cal)} ккал)`;
+  } else if (advisorScope === 'day') {
+    const dayData = data[currentDate] || {};
+    let items = [];
+    MEALS.forEach(m => { (dayData[m.id]||[]).forEach(item=>items.push({...item,meal:m.name})); });
+    if (!items.length) { toast('Нет записей за сегодня'); btn.disabled=false; btnText.textContent='✨ Проанализировать'; return; }
+    const cal = items.reduce((s,i)=>s+i.cal,0);
+    const p = items.reduce((s,i)=>s+i.p,0);
+    const f = items.reduce((s,i)=>s+i.f,0);
+    const c = items.reduce((s,i)=>s+i.c,0);
+    const grouped = MEALS.map(m => {
+      const mItems = (dayData[m.id]||[]);
+      if (!mItems.length) return null;
+      return `${m.name}: ${mItems.map(i=>`${i.name} (${Math.round(i.cal)} ккал)`).join(', ')}`;
+    }).filter(Boolean).join('\n');
+    dataStr = `День: ${currentDate}\n${grouped}\n\nИтого: ${Math.round(cal)} ккал, Б${p.toFixed(1)}г Ж${f.toFixed(1)}г У${c.toFixed(1)}г`;
+    contextStr = `Норма: ${goals.cal} ккал. ${Math.round(cal) < goals.cal ? `Недобор: ${Math.round(goals.cal-cal)} ккал` : `Перебор: ${Math.round(cal-goals.cal)} ккал`}`;
+  } else {
+    // Week
+    const days = [];
+    for (let i=6;i>=0;i--) {
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const ds = d.toISOString().slice(0,10);
+      const dayData = data[ds]||{};
+      let cal=0,p=0,f=0,c=0,count=0;
+      MEALS.forEach(m=>{(dayData[m.id]||[]).forEach(item=>{cal+=item.cal;p+=item.p;f+=item.f;c+=item.c;count++;});});
+      if (count>0) days.push(`${ds}: ${Math.round(cal)} ккал, Б${Math.round(p)}г Ж${Math.round(f)}г У${Math.round(c)}г (${count} записей)`);
+    }
+    if (!days.length) { toast('Нет данных за неделю'); btn.disabled=false; btnText.textContent='✨ Проанализировать'; return; }
+    const avgCal = Math.round(days.reduce((s,_,i)=>{
+      const m = days[i].match(/(\d+) ккал/); return s + (m?parseInt(m[1]):0);
+    },0)/days.length);
+    dataStr = `Данные за неделю:\n${days.join('\n')}`;
+    contextStr = `Средние калории: ${avgCal}/день (норма ${goals.cal}/день)`;
+  }
+
+  const TOPIC_PROMPTS = {
+    general:  'Дай общий анализ. Что хорошо, что улучшить? 3-4 конкретных совета.',
+    protein:  'Сфокусируйся только на белке. Достаточно ли? Что добавить/убрать? Конкретные продукты.',
+    balance:  'Проанализируй баланс БЖУ. Что не так? Как скорректировать?',
+    calories: 'Анализ калорий. Дефицит или профицит? Соответствует ли цели пользователя?',
+    habits:   'Анализ пищевых привычек: время приёмов, пропуски, паттерны. Что изменить?',
+  };
+
+  const systemPrompt = `Ты персональный диетолог. Анализируй питание чётко и конкретно.
+Учитывай профиль пользователя при анализе. Не путай приём пищи с целым днём — анализируй именно то что указано.
+Давай 3-4 практических совета с конкретными цифрами и продуктами.
+Используй эмодзи для структуры. Отвечай на русском. Сразу к делу — без вступлений.`;
+
+  const userPrompt = `Профиль: ${profileStr}
+
+${dataStr}
+${contextStr}
+
+Фокус: ${TOPIC_PROMPTS[selectedAdvisorTopic]}`;
 
   try {
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + localStorage.getItem('nd_openai_key'),
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
       body: JSON.stringify({
         model: 'gpt-4o',
         max_tokens: 1000,
@@ -1047,9 +1588,9 @@ async function runAIAdvisor() {
         ]
       })
     });
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
-    const text = data.choices?.[0]?.message?.content || '';
+    const respData = await resp.json();
+    if (respData.error) throw new Error(respData.error.message);
+    const text = respData.choices?.[0]?.message?.content || '';
     const html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^#{1,3}\s(.+)$/gm, '<strong>$1</strong>');
     document.getElementById('aiResponseBody').innerHTML = html;
     document.getElementById('aiAdvisorResult').style.display = 'block';
@@ -1058,7 +1599,7 @@ async function runAIAdvisor() {
     toast('Ошибка: ' + e.message);
   }
   btn.disabled = false;
-  btnText.textContent = '✨ Проанализировать рацион';
+  btnText.textContent = '✨ Проанализировать';
 }
 
 function resetAdvisor() {
@@ -1370,32 +1911,63 @@ function showAIResult(parsed) {
   buildMealSelects();
 }
 
-function submitPhoto() {
+async function submitPhoto() {
   if (!photoAnalysisResult) return;
+  const note = document.getElementById('photoNote').value.trim();
+
+  // If user added a note, refine the analysis
+  if (note) {
+    const btn = document.querySelector('#aiMealSelectWrap .submit-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Уточняю…';
+
+    const apiKey = localStorage.getItem('nd_openai_key');
+    try {
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 500,
+          messages: [{
+            role: 'user',
+            content: `Вот предыдущий анализ еды: ${JSON.stringify(photoAnalysisResult.items)}
+Пользователь уточняет: "${note}"
+Скорректируй КБЖУ если нужно. Отвечай ТОЛЬКО JSON в том же формате: {"items":[...]}`
+          }]
+        })
+      });
+      const data = await resp.json();
+      if (!data.error) {
+        const text = data.choices?.[0]?.message?.content || '';
+        const clean = text.replace(/```json|```/g,'').trim();
+        const parsed = JSON.parse(clean);
+        if (parsed.items?.length) {
+          photoAnalysisResult = parsed;
+          showAIResult(parsed);
+        }
+      }
+    } catch(e) {}
+    btn.disabled = false;
+    btn.textContent = 'Добавить в дневник';
+  }
+
   const items = photoAnalysisResult.items;
   const mealId = selectedMealPhoto;
-
-  // Add all items as one combined entry
   const totalCal = items.reduce((s,i) => s + i.cal, 0);
   const totalP = items.reduce((s,i) => s + i.p, 0);
   const totalF = items.reduce((s,i) => s + i.f, 0);
   const totalC = items.reduce((s,i) => s + i.c, 0);
-  const name = items.length === 1 ? items[0].name : items.map(i=>i.name).join(', ');
+  const baseName = items.length === 1 ? items[0].name : items.map(i=>i.name).join(', ');
+  const name = '📷 ' + baseName + (note ? ` (${note})` : '');
 
-  addFoodItem(mealId, {
-    name: '📷 ' + name,
-    grams: null,
-    cal: totalCal,
-    p: totalP,
-    f: totalF,
-    c: totalC,
-  });
+  addFoodItem(mealId, { name, grams: null, cal: totalCal, p: totalP, f: totalF, c: totalC });
 
-  // Reset photo tab
   document.getElementById('photoDrop').style.display = 'block';
   document.getElementById('photoPreview').style.display = 'none';
   document.getElementById('aiResult').style.display = 'none';
   document.getElementById('aiMealSelectWrap').style.display = 'none';
+  document.getElementById('photoNote').value = '';
   document.getElementById('photoInput').value = '';
   photoAnalysisResult = null;
 }
@@ -1409,9 +1981,15 @@ function saveApiKey() {
 // ─── INIT ────────────────────────────────────────────────────────────────────
 render();
 buildMealSelects();
-// Load saved API key
 const savedKey = localStorage.getItem('nd_openai_key');
 if (savedKey) document.getElementById('openaiKey').value = savedKey;
+// Load profile
+const savedProfile = loadProfile();
+document.getElementById('profileGender').value = savedProfile.gender || '';
+document.getElementById('profileAge').value = savedProfile.age || '';
+document.getElementById('profileHeight').value = savedProfile.height || '';
+document.getElementById('profileActivity').value = savedProfile.activity || 'средняя';
+document.getElementById('profileGoal').value = savedProfile.goal || 'поддержание';
 </script>
 </body>
 </html>
