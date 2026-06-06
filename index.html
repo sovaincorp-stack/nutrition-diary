@@ -593,6 +593,9 @@
         </div>
       </div>
       <div class="section-title">Цели</div>
+      <div style="font-size:12px;color:var(--text2);margin:-8px 0 10px;line-height:1.5">
+        Заполни профиль и добавь вес — цели рассчитаются автоматически. Или задай вручную.
+      </div>
       <div class="settings-card">
         <div class="settings-row">
           <div><div class="sr-label">Калории</div><div class="sr-sub">ккал/день</div></div>
@@ -1503,14 +1506,67 @@ function addReminder(type) {
 
 function saveProfile() {
   const profile = {
-    gender: document.getElementById('profileGender').value,
-    age: document.getElementById('profileAge').value,
-    height: document.getElementById('profileHeight').value,
+    gender:   document.getElementById('profileGender').value,
+    age:      document.getElementById('profileAge').value,
+    height:   document.getElementById('profileHeight').value,
     activity: document.getElementById('profileActivity').value,
-    goal: document.getElementById('profileGoal').value,
+    goal:     document.getElementById('profileGoal').value,
   };
   localStorage.setItem('nd_profile', JSON.stringify(profile));
-  toast('Профиль сохранён ✓');
+
+  // Автоматический расчёт целей
+  const weights = loadWeights();
+  const weight = weights.length ? weights[weights.length-1].w : null;
+  const age    = parseFloat(profile.age);
+  const height = parseFloat(profile.height);
+  const gender = profile.gender;
+
+  if (weight && age && height && gender) {
+    // Формула Харриса-Бенедикта (пересмотренная Mifflin-St Jeor)
+    let bmr;
+    if (gender === 'мужской') {
+      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+    } else {
+      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    }
+
+    // Коэффициент активности
+    const actMap = { 'низкая': 1.2, 'средняя': 1.55, 'высокая': 1.725 };
+    const act = actMap[profile.activity] || 1.55;
+    let tdee = Math.round(bmr * act);
+
+    // Корректировка по цели
+    const goalMap = { 'похудение': -400, 'поддержание': 0, 'набор массы': +400 };
+    const calGoal = tdee + (goalMap[profile.goal] || 0);
+
+    // Белки: 1.5г на кг веса
+    const proteinGoal = Math.round(weight * 1.5);
+
+    // Жиры: 25% от калорий
+    const fatGoal = Math.round(calGoal * 0.25 / 9);
+
+    // Углеводы: остаток калорий
+    const carbGoal = Math.round((calGoal - proteinGoal * 4 - fatGoal * 9) / 4);
+
+    // Обновляем поля
+    document.getElementById('goalCal').value = calGoal;
+    document.getElementById('goalP').value   = proteinGoal;
+    document.getElementById('goalF').value   = fatGoal;
+    document.getElementById('goalC').value   = Math.max(carbGoal, 50);
+
+    // Сохраняем
+    const goals = {
+      cal: calGoal,
+      p:   proteinGoal,
+      f:   fatGoal,
+      c:   Math.max(carbGoal, 50),
+    };
+    localStorage.setItem('nd_goals', JSON.stringify(goals));
+    render();
+    toast(`Профиль сохранён ✓ Калории: ${calGoal} ккал`);
+  } else {
+    toast('Профиль сохранён. Добавь вес в трекере для расчёта целей.');
+  }
 }
 function loadProfile() {
   return JSON.parse(localStorage.getItem('nd_profile') || '{"gender":"","age":"","height":"","activity":"средняя","goal":"поддержание"}');
