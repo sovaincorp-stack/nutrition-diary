@@ -504,6 +504,16 @@
 
     <!-- PAGE 3: SETTINGS -->
     <div class="page" id="page3">
+      <div class="section-title">ИИ функции</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="sr-label">OpenAI API ключ</div><div class="sr-sub">Для фото-анализа и советника</div></div>
+        </div>
+        <div style="padding:0 16px 16px">
+          <input class="form-input" type="password" id="openaiKey" placeholder="sk-..." onchange="saveApiKey()" style="font-size:13px">
+          <div style="font-size:11px;color:var(--text2);margin-top:6px">Ключ хранится только на устройстве. Получить: platform.openai.com → API keys</div>
+        </div>
+      </div>
       <div class="section-title">Цели</div>
       <div class="settings-card">
         <div class="settings-row">
@@ -577,10 +587,10 @@
 
     <!-- PHOTO TAB -->
     <div id="addTab2" style="display:none">
-      <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoInput').click()">
-        <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="onPhotoSelected(event)">
+      <div class="photo-drop" id="photoDrop">
         <div class="photo-drop-icon">📷</div>
         <div class="photo-drop-text">Нажми чтобы <span>сфотографировать</span> или выбрать из галереи.<br>ИИ определит состав и калории.</div>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="onPhotoSelected(event)" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;z-index:10;">
       </div>
 
       <img class="photo-preview" id="photoPreview">
@@ -1022,24 +1032,30 @@ async function runAIAdvisor() {
   const userPrompt = `Данные за последние ${summary.daysTracked} дней:\n${daysText}\n\nСредние показатели: ${summary.avgCal} ккал/день, Б${summary.avgP}г Ж${summary.avgF}г У${summary.avgC}г\n\nЦели: ${summary.goals.cal} ккал, Б${summary.goals.p}г Ж${summary.goals.f}г У${summary.goals.c}г\n${summary.latestWeight ? `\nВес: ${summary.latestWeight} кг` : ''}\n\nЗадача: ${TOPIC_PROMPTS[selectedAdvisorTopic]}`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('nd_openai_key'),
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'gpt-4o',
         max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ]
       })
     });
     const data = await resp.json();
-    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    if (data.error) throw new Error(data.error.message);
+    const text = data.choices?.[0]?.message?.content || '';
     const html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^#{1,3}\s(.+)$/gm, '<strong>$1</strong>');
     document.getElementById('aiResponseBody').innerHTML = html;
     document.getElementById('aiAdvisorResult').style.display = 'block';
     document.getElementById('aiAdvisorResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch(e) {
-    toast('Ошибка анализа. Попробуй ещё раз.');
+    toast('Ошибка: ' + e.message);
   }
   btn.disabled = false;
   btnText.textContent = '✨ Проанализировать рацион';
@@ -1227,18 +1243,32 @@ function toast(msg) {
 function onPhotoSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
+
+  document.getElementById('aiAnalyzing').style.display = 'block';
+  document.getElementById('aiAnalyzing').querySelector('p').textContent = 'Подготовка фото…';
+  document.getElementById('aiResult').style.display = 'none';
+  document.getElementById('aiError').style.display = 'none';
+  document.getElementById('aiMealSelectWrap').style.display = 'none';
+  photoAnalysisResult = null;
+
   const reader = new FileReader();
   reader.onload = ev => {
-    const base64 = ev.target.result;
+    const dataUrl = ev.target.result;
+    const base64 = dataUrl.split(',')[1];
+
     const preview = document.getElementById('photoPreview');
-    preview.src = base64;
+    preview.src = dataUrl;
     preview.style.display = 'block';
     document.getElementById('photoDrop').style.display = 'none';
-    document.getElementById('aiResult').style.display = 'none';
-    document.getElementById('aiError').style.display = 'none';
-    document.getElementById('aiMealSelectWrap').style.display = 'none';
-    photoAnalysisResult = null;
-    analyzePhoto(base64.split(',')[1], file.type || 'image/jpeg');
+
+    document.getElementById('aiAnalyzing').querySelector('p').textContent = 'Анализирую еду на фото…\nобычно 5–10 секунд';
+    analyzePhoto(base64, file.type || 'image/jpeg');
+  };
+  reader.onerror = () => {
+    document.getElementById('aiAnalyzing').style.display = 'none';
+    const errEl = document.getElementById('aiError');
+    errEl.style.display = 'block';
+    errEl.textContent = '⚠️ Не удалось прочитать файл: ' + (reader.error ? reader.error.message : 'неизвестная ошибка');
   };
   reader.readAsDataURL(file);
 }
@@ -1247,6 +1277,15 @@ async function analyzePhoto(base64Data, mediaType) {
   document.getElementById('aiAnalyzing').style.display = 'block';
   document.getElementById('aiError').style.display = 'none';
   document.getElementById('aiResult').style.display = 'none';
+
+  const apiKey = localStorage.getItem('nd_openai_key');
+  if (!apiKey) {
+    document.getElementById('aiAnalyzing').style.display = 'none';
+    const errEl = document.getElementById('aiError');
+    errEl.style.display = 'block';
+    errEl.innerHTML = '⚠️ Введи OpenAI API ключ в <b>Настройках</b> (вкладка ⚙️)';
+    return;
+  }
 
   const prompt = `Ты диетолог. Посмотри на фото еды и определи все блюда/продукты которые видишь.
 Для каждого продукта укажи РЕАЛИСТИЧНУЮ порцию (в граммах) и КБЖУ.
@@ -1260,16 +1299,19 @@ async function analyzePhoto(base64Data, mediaType) {
 Значения cal, p, f, c — для указанной порции (не на 100г). Будь точен.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey,
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'gpt-4o',
         max_tokens: 1000,
         messages: [{
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64Data}` } },
             { type: 'text', text: prompt }
           ]
         }]
@@ -1278,13 +1320,17 @@ async function analyzePhoto(base64Data, mediaType) {
     const data = await resp.json();
     document.getElementById('aiAnalyzing').style.display = 'none';
 
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    if (data.error) throw new Error(data.error.message);
+
+    const text = data.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Пустой ответ API');
+
     let parsed;
     try {
       const clean = text.replace(/```json|```/g,'').trim();
       parsed = JSON.parse(clean);
     } catch {
-      throw new Error('Не удалось разобрать ответ ИИ');
+      throw new Error('Не удалось разобрать JSON. Ответ: ' + text.slice(0, 200));
     }
     if (!parsed.items || !parsed.items.length) throw new Error('ИИ не нашёл еду на фото');
 
@@ -1294,7 +1340,7 @@ async function analyzePhoto(base64Data, mediaType) {
     document.getElementById('aiAnalyzing').style.display = 'none';
     const errEl = document.getElementById('aiError');
     errEl.style.display = 'block';
-    errEl.textContent = '⚠️ ' + (err.message || 'Ошибка анализа. Попробуй снова.');
+    errEl.innerHTML = `⚠️ Ошибка: <b>${err.message || String(err)}</b>`;
     document.getElementById('photoDrop').style.display = 'block';
     document.getElementById('photoPreview').style.display = 'none';
   }
@@ -1354,9 +1400,18 @@ function submitPhoto() {
   photoAnalysisResult = null;
 }
 
+function saveApiKey() {
+  const key = document.getElementById('openaiKey').value.trim();
+  localStorage.setItem('nd_openai_key', key);
+  toast('API ключ сохранён ✓');
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 render();
 buildMealSelects();
+// Load saved API key
+const savedKey = localStorage.getItem('nd_openai_key');
+if (savedKey) document.getElementById('openaiKey').value = savedKey;
 </script>
 </body>
 </html>
