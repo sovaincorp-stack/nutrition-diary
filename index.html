@@ -2645,31 +2645,28 @@ function setSyncStatus(msg, color) {
 }
 
 async function syncToGitHub() {
-  const token = localStorage.getItem('nd_gh_token');
-  const repo  = localStorage.getItem('nd_gh_repo');
+  const tokenEl = document.getElementById('githubToken');
+  const repoEl  = document.getElementById('githubRepo');
+  const token = (tokenEl?.value.trim()) || localStorage.getItem('nd_gh_token') || '';
+  const repo  = (repoEl?.value.trim())  || localStorage.getItem('nd_gh_repo')  || '';
   if (!token || !repo) { setSyncStatus('⚠️ Введи токен и репозиторий', '#f08080'); return; }
+  localStorage.setItem('nd_gh_token', token);
+  localStorage.setItem('nd_gh_repo', repo);
 
   setSyncStatus('⏳ Сохраняю...', 'var(--text2)');
   const content = {
-    питание: loadData(),
-    вес: loadWeights(),
-    цели: loadGoals(),
-    профиль: loadProfile(),
-    чаты: loadChats(),
+    питание: loadData(), вес: loadWeights(),
+    цели: loadGoals(), профиль: loadProfile(), чаты: loadChats(),
   };
   const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2))));
-
   try {
-    // Check if file exists to get SHA
     let sha = null;
     const check = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
     });
     if (check.ok) { const j = await check.json(); sha = j.sha; }
-
     const body = { message: `Данные ${new Date().toLocaleDateString('ru')}`, content: encoded };
     if (sha) body.sha = sha;
-
     const resp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
       method: 'PUT',
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
@@ -2677,15 +2674,17 @@ async function syncToGitHub() {
     });
     if (resp.ok) setSyncStatus('✅ Сохранено в GitHub!', '#50c850');
     else { const e = await resp.json(); setSyncStatus('❌ ' + (e.message || 'Ошибка'), '#f08080'); }
-  } catch(e) {
-    setSyncStatus('❌ ' + e.message, '#f08080');
-  }
+  } catch(e) { setSyncStatus('❌ ' + e.message, '#f08080'); }
 }
 
 async function syncFromGitHub() {
-  const token = localStorage.getItem('nd_gh_token');
-  const repo  = localStorage.getItem('nd_gh_repo');
+  const tokenEl = document.getElementById('githubToken');
+  const repoEl  = document.getElementById('githubRepo');
+  const token = (tokenEl?.value.trim()) || localStorage.getItem('nd_gh_token') || '';
+  const repo  = (repoEl?.value.trim())  || localStorage.getItem('nd_gh_repo')  || '';
   if (!token || !repo) { setSyncStatus('⚠️ Введи токен и репозиторий', '#f08080'); return; }
+  localStorage.setItem('nd_gh_token', token);
+  localStorage.setItem('nd_gh_repo', repo);
 
   setSyncStatus('⏳ Загружаю...', 'var(--text2)');
   try {
@@ -2696,19 +2695,14 @@ async function syncFromGitHub() {
     const j = await resp.json();
     const decoded = decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))));
     const data = JSON.parse(decoded);
-
     if (data.питание) saveData(data.питание);
     if (data.вес) saveWeights(data.вес);
     if (data.цели) localStorage.setItem('nd_goals', JSON.stringify(data.цели));
     if (data.профиль) localStorage.setItem('nd_profile', JSON.stringify(data.профиль));
     if (data.чаты) saveChats(data.чаты);
-
-    render();
-    renderWeight();
+    render(); renderWeight();
     setSyncStatus('✅ Данные загружены!', '#50c850');
-  } catch(e) {
-    setSyncStatus('❌ ' + e.message, '#f08080');
-  }
+  } catch(e) { setSyncStatus('❌ ' + e.message, '#f08080'); }
 }
 
 function saveApiKey() {
