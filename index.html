@@ -1460,6 +1460,7 @@ function deleteItem(mealId, idx) {
   saveData(data);
   render();
   toast('Удалено');
+  autoSync();
 }
 
 function renderWeight() {
@@ -1526,6 +1527,7 @@ function addWeight() {
   document.getElementById('wInput').value = '';
   renderWeight();
   toast('Вес сохранён ✓');
+  autoSync();
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
@@ -1637,58 +1639,54 @@ function saveProfile() {
   };
   localStorage.setItem('nd_profile', JSON.stringify(profile));
 
-  // Автоматический расчёт целей
+  // Берём вес из поля профиля
+  const profileWeight = parseFloat(document.getElementById('profileWeight')?.value);
+  // Или из трекера если поле пустое
   const weights = loadWeights();
-  const weight = weights.length ? weights[weights.length-1].w : null;
+  const trackerWeight = weights.length ? weights[weights.length-1].w : null;
+  const weight = profileWeight || trackerWeight;
+
+  // Если вес введён в профиле — сохраняем в трекер
+  if (profileWeight && profileWeight > 20 && profileWeight < 300) {
+    const today = todayStr();
+    const existing = weights.findIndex(e => e.date === today);
+    if (existing >= 0) weights[existing].w = profileWeight;
+    else weights.push({ date: today, w: profileWeight });
+    weights.sort((a,b) => a.date.localeCompare(b.date));
+    saveWeights(weights);
+    renderWeight();
+  }
+
   const age    = parseFloat(profile.age);
   const height = parseFloat(profile.height);
   const gender = profile.gender;
 
   if (weight && age && height && gender) {
-    // Формула Харриса-Бенедикта (пересмотренная Mifflin-St Jeor)
     let bmr;
     if (gender === 'мужской') {
       bmr = 10 * weight + 6.25 * height - 5 * age + 5;
     } else {
       bmr = 10 * weight + 6.25 * height - 5 * age - 161;
     }
-
-    // Коэффициент активности
     const actMap = { 'низкая': 1.2, 'средняя': 1.55, 'высокая': 1.725 };
     const act = actMap[profile.activity] || 1.55;
     let tdee = Math.round(bmr * act);
-
-    // Корректировка по цели
     const goalMap = { 'похудение': -400, 'поддержание': 0, 'набор массы': +400 };
     const calGoal = tdee + (goalMap[profile.goal] || 0);
-
-    // Белки: 1.5г на кг веса
     const proteinGoal = Math.round(weight * 1.5);
-
-    // Жиры: 25% от калорий
     const fatGoal = Math.round(calGoal * 0.25 / 9);
-
-    // Углеводы: остаток калорий
     const carbGoal = Math.round((calGoal - proteinGoal * 4 - fatGoal * 9) / 4);
-
-    // Обновляем поля
     document.getElementById('goalCal').value = calGoal;
     document.getElementById('goalP').value   = proteinGoal;
     document.getElementById('goalF').value   = fatGoal;
     document.getElementById('goalC').value   = Math.max(carbGoal, 50);
-
-    // Сохраняем
-    const goals = {
-      cal: calGoal,
-      p:   proteinGoal,
-      f:   fatGoal,
-      c:   Math.max(carbGoal, 50),
-    };
+    const goals = { cal: calGoal, p: proteinGoal, f: fatGoal, c: Math.max(carbGoal, 50) };
     localStorage.setItem('nd_goals', JSON.stringify(goals));
     render();
-    toast(`Профиль сохранён ✓ Калории: ${calGoal} ккал`);
+    toast(`✅ Калории: ${calGoal} ккал · Белки: ${proteinGoal}г`);
+    autoSync();
   } else {
-    toast('Профиль сохранён. Добавь вес в трекере для расчёта целей.');
+    toast('Профиль сохранён. Проверь все поля для расчёта целей.');
   }
 }
 function loadProfile() {
@@ -2260,6 +2258,7 @@ function addFoodItem(mealId, item) {
   render();
   closeModal();
   toast(`${item.name} добавлено ✓`);
+  autoSync();
 }
 
 // ─── GOALS ────────────────────────────────────────────────────────────────────
@@ -2273,6 +2272,7 @@ function saveGoals() {
   localStorage.setItem('nd_goals', JSON.stringify(goals));
   render();
   toast('Цели сохранены ✓');
+  autoSync();
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
@@ -2638,7 +2638,38 @@ async function submitPhoto() {
   photoAnalysisResult = null;
 }
 
-// ─── GITHUB SYNC ─────────────────────────────────────────────────────────────
+// ─── AUTO SYNC ────────────────────────────────────────────────────────────────
+let autoSyncTimer = null;
+function autoSync() {
+  const token = localStorage.getItem('nd_gh_token');
+  const repo  = localStorage.getItem('nd_gh_repo');
+  if (!token || !repo) return; // Не настроено — пропускаем
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(async () => {
+    const content = {
+      питание: loadData(), вес: loadWeights(),
+      цели: loadGoals(), профиль: loadProfile(), чаты: loadChats(),
+    };
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2))));
+    try {
+      let sha = null;
+      const check = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (check.ok) { const j = await check.json(); sha = j.sha; }
+      const body = { message: `Автосохранение ${new Date().toLocaleDateString('ru')}`, content: encoded };
+      if (sha) body.sha = sha;
+      await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      // Показать тихое уведомление
+      const el = document.getElementById('syncStatus');
+      if (el) { el.textContent = '✅ Автосохранено'; el.style.color = '#50c850'; setTimeout(()=>{ if(el) el.textContent=''; }, 3000); }
+    } catch(e) {} // Тихая ошибка — не мешать пользователю
+  }, 3000); // Задержка 3 сек чтобы не спамить запросами
+}
 function setSyncStatus(msg, color) {
   const el = document.getElementById('syncStatus');
   if (el) { el.textContent = msg; el.style.color = color || 'var(--text2)'; }
