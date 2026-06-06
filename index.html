@@ -1639,12 +1639,12 @@ function saveProfile() {
   };
   localStorage.setItem('nd_profile', JSON.stringify(profile));
 
-  // Берём вес из поля профиля
-  const profileWeight = parseFloat(document.getElementById('profileWeight')?.value);
-  // Или из трекера если поле пустое
+  // Берём вес из поля профиля или трекера
+  const profileWeightEl = document.getElementById('profileWeight');
+  const profileWeight = profileWeightEl ? parseFloat(profileWeightEl.value) : null;
   const weights = loadWeights();
   const trackerWeight = weights.length ? weights[weights.length-1].w : null;
-  const weight = profileWeight || trackerWeight;
+  const weight = (profileWeight && profileWeight > 20) ? profileWeight : trackerWeight;
 
   // Если вес введён в профиле — сохраняем в трекер
   if (profileWeight && profileWeight > 20 && profileWeight < 300) {
@@ -1686,7 +1686,8 @@ function saveProfile() {
     toast(`✅ Калории: ${calGoal} ккал · Белки: ${proteinGoal}г`);
     autoSync();
   } else {
-    toast('Профиль сохранён. Проверь все поля для расчёта целей.');
+    const missing = [!gender&&'пол', !age&&'возраст', !height&&'рост', !weight&&'вес'].filter(Boolean).join(', ');
+    toast(`Не хватает: ${missing}`);
   }
 }
 function loadProfile() {
