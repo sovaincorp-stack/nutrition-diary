@@ -668,14 +668,27 @@
 
     <!-- PHOTO TAB -->
     <div id="addTab2" style="display:none">
+      <!-- Step 1: Drop zone -->
       <div class="photo-drop" id="photoDrop">
         <div class="photo-drop-icon">📷</div>
         <div class="photo-drop-text">Нажми чтобы <span>сфотографировать</span> или выбрать из галереи.<br>ИИ определит состав и калории.</div>
         <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="onPhotoSelected(event)" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;z-index:10;">
       </div>
 
-      <img class="photo-preview" id="photoPreview">
+      <!-- Step 2: Preview + comment + send -->
+      <div id="photoConfirmWrap" style="display:none">
+        <img class="photo-preview" id="photoPreview" style="display:block">
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <button onclick="retakePhoto()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:14px;cursor:pointer">📷 Переснять</button>
+          <button onclick="sendPhotoForAnalysis()" style="flex:2;padding:12px;border-radius:12px;border:none;background:var(--accent3);color:#fff;font-size:14px;font-weight:700;cursor:pointer">✨ Анализировать</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Комментарий (необязательно)</label>
+          <input class="form-input" type="text" id="photoNote" placeholder="Например: большая порция, без соуса…">
+        </div>
+      </div>
 
+      <!-- Step 3: Analyzing -->
       <div class="ai-analyzing" id="aiAnalyzing">
         <div class="spin">🔍</div>
         <p>Анализирую еду на фото…<br>обычно 5–10 секунд</p>
@@ -683,6 +696,7 @@
 
       <div class="ai-error" id="aiError"></div>
 
+      <!-- Step 4: Result -->
       <div class="ai-result" id="aiResult">
         <div class="ai-result-title">🍽 Найдено на фото:</div>
         <div class="ai-items-list" id="aiItemsList"></div>
@@ -691,20 +705,14 @@
           <span class="ai-food-cals" id="aiTotalCal"></span>
         </div>
         <div class="ai-total-macros" id="aiTotalMacros"></div>
-        <div style="margin-top:6px;font-size:11px;color:var(--text2)">* Оценка ИИ — может немного отличаться от реального</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--text2)">* Оценка ИИ — может отличаться от реального</div>
       </div>
 
       <div id="aiMealSelectWrap" style="display:none">
-        <div class="form-group" style="margin-bottom:12px">
-          <label class="form-label">Уточнение (необязательно)</label>
-          <input class="form-input" type="text" id="photoNote" placeholder="Например: большая порция, соус отдельно…">
-        </div>
         <div class="form-label" style="margin-bottom:8px">Добавить в приём пищи:</div>
         <div class="meal-select" id="mealSelectPhoto"></div>
         <button class="submit-btn" onclick="submitPhoto()">Добавить в дневник</button>
       </div>
-    </div>
-
     </div>
 
     <!-- VOICE/TEXT TAB -->
@@ -1986,6 +1994,7 @@ function showVoiceResult(parsed) {
   document.getElementById('voicePortionNote').textContent = portion_note ? '📏 ' + portion_note : '';
   document.getElementById('voiceResult').style.display = 'block';
   buildMealSelects();
+  setTimeout(() => document.getElementById('voiceResult').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 }
 
 function submitVoice() {
@@ -2009,33 +2018,37 @@ function onPhotoSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  document.getElementById('aiAnalyzing').style.display = 'block';
-  document.getElementById('aiAnalyzing').querySelector('p').textContent = 'Подготовка фото…';
-  document.getElementById('aiResult').style.display = 'none';
-  document.getElementById('aiError').style.display = 'none';
-  document.getElementById('aiMealSelectWrap').style.display = 'none';
-  photoAnalysisResult = null;
-
   const reader = new FileReader();
   reader.onload = ev => {
     const dataUrl = ev.target.result;
-    const base64 = dataUrl.split(',')[1];
+    window._pendingPhotoBase64 = dataUrl.split(',')[1];
+    window._pendingPhotoType = file.type || 'image/jpeg';
 
-    const preview = document.getElementById('photoPreview');
-    preview.src = dataUrl;
-    preview.style.display = 'block';
+    document.getElementById('photoPreview').src = dataUrl;
     document.getElementById('photoDrop').style.display = 'none';
-
-    document.getElementById('aiAnalyzing').querySelector('p').textContent = 'Анализирую еду на фото…\nобычно 5–10 секунд';
-    analyzePhoto(base64, file.type || 'image/jpeg');
-  };
-  reader.onerror = () => {
+    document.getElementById('photoConfirmWrap').style.display = 'block';
     document.getElementById('aiAnalyzing').style.display = 'none';
-    const errEl = document.getElementById('aiError');
-    errEl.style.display = 'block';
-    errEl.textContent = '⚠️ Не удалось прочитать файл: ' + (reader.error ? reader.error.message : 'неизвестная ошибка');
+    document.getElementById('aiResult').style.display = 'none';
+    document.getElementById('aiError').style.display = 'none';
+    document.getElementById('aiMealSelectWrap').style.display = 'none';
+    photoAnalysisResult = null;
   };
+  reader.onerror = () => toast('Не удалось прочитать файл');
   reader.readAsDataURL(file);
+}
+
+function retakePhoto() {
+  document.getElementById('photoConfirmWrap').style.display = 'none';
+  document.getElementById('photoDrop').style.display = 'block';
+  document.getElementById('photoInput').value = '';
+  document.getElementById('photoNote').value = '';
+  window._pendingPhotoBase64 = null;
+}
+
+function sendPhotoForAnalysis() {
+  if (!window._pendingPhotoBase64) return;
+  document.getElementById('photoConfirmWrap').style.display = 'none';
+  analyzePhoto(window._pendingPhotoBase64, window._pendingPhotoType || 'image/jpeg');
 }
 
 async function analyzePhoto(base64Data, mediaType) {
@@ -2188,6 +2201,7 @@ async function submitPhoto() {
   addFoodItem(mealId, { name, grams: null, cal: totalCal, p: totalP, f: totalF, c: totalC });
 
   document.getElementById('photoDrop').style.display = 'block';
+  document.getElementById('photoConfirmWrap').style.display = 'none';
   document.getElementById('photoPreview').style.display = 'none';
   document.getElementById('aiResult').style.display = 'none';
   document.getElementById('aiMealSelectWrap').style.display = 'none';
