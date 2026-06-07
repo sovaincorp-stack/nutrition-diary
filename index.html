@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Дневник питания</title>
@@ -24,6 +24,7 @@
     --cal: #c8f050;
     --r: 16px;
   }
+  input, textarea, select { font-size: 16px !important; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; scrollbar-width: none; -ms-overflow-style: none; }
   *::-webkit-scrollbar { display: none; }
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
@@ -484,7 +485,10 @@
 <div class="app">
   <div class="topbar">
     <div class="topbar-inner">
-      <div class="app-title" id="appTitle">🥗 Питание</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="app-title" id="appTitle">🥗 Питание</div>
+        <div id="streakBadge" style="display:none;background:rgba(255,165,0,.15);border:1px solid rgba(255,165,0,.4);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#ffa500;white-space:nowrap">🔥 0</div>
+      </div>
       <div id="dateNav" style="display:flex;align-items:center;gap:6px">
         <button onclick="changeDay(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent">‹</button>
         <button class="date-btn" id="dateLbl" onclick="changeDate()" style="flex-shrink:0;height:36px;padding:0 14px">Сегодня</button>
@@ -757,8 +761,35 @@
           <div><div class="sr-label" style="color:#f05050">🗑 Очистить день</div><div class="sr-sub">Удалить записи за сегодня</div></div>
           <div style="color:var(--text2)">›</div>
         </div>
+        <div class="settings-row" style="cursor:pointer" onclick="clearSpecificDay()">
+          <div><div class="sr-label" style="color:#f05050">📅 Удалить конкретный день</div><div class="sr-sub">Питание, спорт или вес за любую дату</div></div>
+          <div style="color:var(--text2)">›</div>
+        </div>
+        <div class="settings-row" style="cursor:pointer" onclick="deleteWeightEntry()">
+          <div><div class="sr-label" style="color:#f05050">⚖️ Удалить замер веса</div><div class="sr-sub">Убрать конкретную дату с графика</div></div>
+          <div style="color:var(--text2)">›</div>
+        </div>
       </div>
-      <div class="section-title">🤖 OpenAI API</div>
+      <div class="section-title">🏆 Мотивация</div>
+      <div style="font-size:12px;color:var(--text2);margin:-8px 0 12px;line-height:1.5">Запиши что получишь за серию дней — это работает. Пропускать будет жалко.</div>
+
+      <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px">🔥 Стрик питания <span id="currentStreakDisplay" style="font-family:'Syne',sans-serif;font-size:18px;color:#ffa500">0 дн.</span></div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">21 день — Награда 🎁</div>
+            <input class="form-input" id="reward21" placeholder="Например: новые кроссовки" style="font-size:13px" onchange="saveMotivation()">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">60 дней — Награда 🏅</div>
+            <input class="form-input" id="reward60" placeholder="Например: поход в ресторан" style="font-size:13px" onchange="saveMotivation()">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">180 дней — Награда 🥇</div>
+            <input class="form-input" id="reward180" placeholder="Например: поездка на выходные" style="font-size:13px" onchange="saveMotivation()">
+          </div>
+        </div>
+      </div>
       <div class="settings-card">
         <div class="settings-row">
           <div><div class="sr-label">API ключ</div><div class="sr-sub">Для фото-анализа и советника</div></div>
@@ -790,11 +821,11 @@
 
   <!-- BOTTOM NAV -->
   <div class="tabs">
-    <button class="tab" onclick="switchTab(2)">
-      <span class="tab-icon">🏋️</span><span class="tab-label">Спорт</span>
-    </button>
     <button class="tab active" onclick="switchTab(0)">
       <span class="tab-icon">🥗</span><span class="tab-label">Питание</span>
+    </button>
+    <button class="tab" onclick="switchTab(2)">
+      <span class="tab-icon">🏋️</span><span class="tab-label">Спорт</span>
     </button>
     <button class="tab" onclick="switchTab(1)">
       <span class="tab-icon">🤖</span><span class="tab-label">ИИ</span>
@@ -1623,6 +1654,7 @@ function render() {
   document.getElementById('goalC').value = goals.c;
 
   renderWeight();
+  updateStreakBadge();
 }
 
 function deleteItem(mealId, idx) {
@@ -1979,6 +2011,7 @@ function switchTab(i) {
   if (i===1) renderChatList();
   if (i===2) renderSport();
   if (i===3) renderWeight();
+  if (i===4) loadMotivationFields();
 }
 
 // ─── CHAT MIC ─────────────────────────────────────────────────────────────────
@@ -2901,12 +2934,88 @@ function saveGoals() {
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
 function clearDay() {
-  if (!confirm(`Удалить все записи за ${currentDate}?`)) return;
+  showDeleteModal('today');
+}
+
+function clearSpecificDay() {
+  showDeleteModal('specific');
+}
+
+function deleteWeightEntry() {
+  showDeleteModal('weight');
+}
+
+function showDeleteModal(mode) {
+  // Remove existing modal if any
+  document.getElementById('deleteModal')?.remove();
+
+  const weights = loadWeights().slice(-7).reverse();
+  const weightList = weights.map(e => `<button onclick="confirmDeleteWeight('${e.date}')" style="display:block;width:100%;text-align:left;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;cursor:pointer;margin-bottom:6px">${e.date} — ${e.w} кг</button>`).join('');
+
+  const html = `<div id="deleteModal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)">
+    <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:430px;max-height:80dvh;overflow-y:auto">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px"></div>
+      ${mode === 'today' ? `
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:16px">Очистить день</div>
+        <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Удалить все записи питания за <b style="color:var(--text)">${currentDate}</b>?</p>
+        <button onclick="confirmClearDay()" style="width:100%;padding:14px;border-radius:12px;border:none;background:#f05050;color:#fff;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:8px">Удалить</button>
+        <button onclick="document.getElementById('deleteModal').remove()" style="width:100%;padding:14px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--text2);font-size:15px;cursor:pointer">Отмена</button>
+      ` : mode === 'specific' ? `
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px">Удалить день</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Введи дату и выбери что удалить</div>
+        <input id="deleteDateInput" type="date" value="${currentDate}" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;margin-bottom:12px">
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <button onclick="confirmDeleteSpecific('food')" style="padding:12px;border-radius:12px;border:none;background:rgba(240,80,80,.15);color:#f05050;font-weight:600;font-size:14px;cursor:pointer">🥗 Удалить питание</button>
+          <button onclick="confirmDeleteSpecific('sport')" style="padding:12px;border-radius:12px;border:none;background:rgba(240,80,144,.15);color:var(--accent3);font-weight:600;font-size:14px;cursor:pointer">🏋️ Удалить тренировки</button>
+          <button onclick="confirmDeleteSpecific('both')" style="padding:12px;border-radius:12px;border:none;background:rgba(240,80,80,.25);color:#f05050;font-weight:700;font-size:14px;cursor:pointer">🗑 Удалить всё за день</button>
+        </div>
+        <button onclick="document.getElementById('deleteModal').remove()" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--text2);font-size:14px;cursor:pointer">Отмена</button>
+      ` : `
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px">Удалить замер веса</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Выбери замер для удаления</div>
+        ${weightList || '<p style="color:var(--text2);font-size:14px">Нет замеров</p>'}
+        <button onclick="document.getElementById('deleteModal').remove()" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--text2);font-size:14px;cursor:pointer;margin-top:8px">Отмена</button>
+      `}
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function confirmClearDay() {
   const data = loadData();
   delete data[currentDate];
   saveData(data);
   render();
+  document.getElementById('deleteModal')?.remove();
   toast('День очищен');
+  autoSync();
+}
+
+function confirmDeleteSpecific(type) {
+  const date = document.getElementById('deleteDateInput')?.value;
+  if (!date) return;
+  if (type === 'food' || type === 'both') {
+    const data = loadData(); delete data[date]; saveData(data);
+  }
+  if (type === 'sport' || type === 'both') {
+    const sport = loadSport(); delete sport[date]; saveSport(sport);
+  }
+  render(); renderWeight();
+  document.getElementById('deleteModal')?.remove();
+  toast(`Удалено за ${date}`);
+  autoSync();
+}
+
+function confirmDeleteWeight(date) {
+  const weights = loadWeights();
+  const idx = weights.findIndex(e => e.date === date);
+  if (idx === -1) return;
+  weights.splice(idx, 1);
+  saveWeights(weights);
+  renderWeight();
+  document.getElementById('deleteModal')?.remove();
+  toast(`Замер за ${date} удалён`);
+  autoSync();
 }
 function exportData() {
   const all = {
@@ -3264,6 +3373,93 @@ async function submitPhoto() {
 
 // ─── AUTO SYNC ────────────────────────────────────────────────────────────────
 let autoSyncTimer = null;
+// ─── STREAK & MOTIVATION ──────────────────────────────────────────────────────
+function calcFoodStreak() {
+  const data = loadData();
+  let streak = 0;
+  const today = todayStr();
+  for (let i = 0; i <= 365; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    if (ds > today) continue;
+    const dayData = data[ds] || {};
+    let hasMeals = false;
+    MEALS.forEach(m => { if ((dayData[m.id]||[]).length) hasMeals = true; });
+    if (hasMeals) streak++;
+    else if (i > 0) break;
+  }
+  return streak;
+}
+
+function calcSportStreak() {
+  const sport = loadSport();
+  let streak = 0;
+  for (let w = 0; w <= 52; w++) {
+    const now = new Date();
+    const weekDays = [1,3,5].map(dow => {
+      const d = new Date(now);
+      const day = d.getDay();
+      const diff = (day - dow + 7) % 7;
+      d.setDate(d.getDate() - diff - w*7);
+      return d.toISOString().slice(0,10);
+    });
+    const hasAll = weekDays.every(ds => (sport[ds]||[]).length > 0);
+    if (hasAll) streak++;
+    else if (w > 0) break;
+  }
+  return streak;
+}
+
+function updateStreakBadge() {
+  const streak = calcFoodStreak();
+  const badge = document.getElementById('streakBadge');
+  if (badge) {
+    badge.style.display = streak > 0 ? '' : 'none';
+    badge.textContent = `🔥 ${streak}`;
+  }
+  const sd = document.getElementById('currentStreakDisplay');
+  if (sd) sd.textContent = streak + ' дн.';
+  const ss = document.getElementById('sportStreakDisplay');
+  if (ss) ss.textContent = calcSportStreak() + ' нед.';
+  checkStreakMilestones(streak);
+}
+
+function checkStreakMilestones(streak) {
+  const m = JSON.parse(localStorage.getItem('nd_motivation') || '{}');
+  const last = parseInt(localStorage.getItem('nd_last_milestone') || '0');
+  if (streak >= 21 && last < 21) {
+    localStorage.setItem('nd_last_milestone', '21');
+    if (m.reward21) setTimeout(() => toast(`🎉 21 день! Твоя награда: ${m.reward21}`), 500);
+  }
+  if (streak >= 60 && last < 60) {
+    localStorage.setItem('nd_last_milestone', '60');
+    if (m.reward60) setTimeout(() => toast(`🏅 60 дней! Твоя награда: ${m.reward60}`), 500);
+  }
+  if (streak >= 180 && last < 180) {
+    localStorage.setItem('nd_last_milestone', '180');
+    if (m.reward180) setTimeout(() => toast(`🥇 180 дней! Твоя награда: ${m.reward180}`), 500);
+  }
+}
+
+function saveMotivation() {
+  const m = {
+    reward21: document.getElementById('reward21')?.value || '',
+    reward60: document.getElementById('reward60')?.value || '',
+    reward180: document.getElementById('reward180')?.value || '',
+  };
+  localStorage.setItem('nd_motivation', JSON.stringify(m));
+  toast('Сохранено ✓');
+}
+
+function loadMotivationFields() {
+  const m = JSON.parse(localStorage.getItem('nd_motivation') || '{}');
+  ['reward21','reward60','reward180'].forEach(k => {
+    const el = document.getElementById(k);
+    if (el && m[k]) el.value = m[k];
+  });
+  updateStreakBadge();
+}
+
 function autoSync() {
   const token = localStorage.getItem('nd_gh_token');
   const repo  = localStorage.getItem('nd_gh_repo');
