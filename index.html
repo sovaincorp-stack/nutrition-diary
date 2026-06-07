@@ -603,17 +603,18 @@
       </div>
 
       <div id="page1" class="page" style="display:none">
-        <!-- WEIGHT BLOCK (ввод + график в одном фоне) -->
+        <!-- WEIGHT BLOCK -->
         <div class="section-title">⚖️ Вес</div>
         <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:20px;margin-bottom:16px">
-          <div class="weight-current">
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
             <div class="weight-num" id="wCurrent">—</div>
             <div class="weight-unit">кг</div>
-            <div class="weight-delta same" id="wDelta" style="margin-left:12px;display:none"></div>
+            <div class="weight-delta same" id="wDelta" style="margin-left:8px;display:none"></div>
           </div>
-          <div class="weight-input-row" style="margin-top:12px">
-            <input class="w-input" type="number" step="0.1" placeholder="Введи вес (кг)" id="wInput">
-            <button class="w-btn" onclick="addWeight()">Добавить</button>
+          <div id="weightTodayReminder" style="font-size:12px;color:var(--accent3);margin-bottom:12px;display:none">⚠️ Вы сегодня не вводили вес</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input type="number" step="0.1" min="20" max="300" placeholder="Введи вес сегодня (кг)" id="wInput" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+            <button class="w-btn" onclick="addWeight()" style="padding:0 18px">+ Добавить</button>
           </div>
           <div id="weightChartTitle" style="font-size:11px;color:var(--text2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;font-weight:600"></div>
           <svg id="weightChart" width="100%" height="160" style="overflow:visible"></svg>
@@ -709,7 +710,7 @@
         </div>
         <div class="settings-row">
           <div><div class="sr-label">Вес</div><div class="sr-sub">кг (текущий)</div></div>
-          <input class="sr-input" type="number" id="profileWeight" placeholder="75" step="0.1" onchange="saveProfileWeight()">
+          <input class="sr-input" type="number" id="profileWeight" placeholder="75" step="0.1" oninput="saveProfileWeight()">
         </div>
         <div class="settings-row">
           <div><div class="sr-label">Рост</div><div class="sr-sub">см</div></div>
@@ -1672,6 +1673,27 @@ function renderWeight() {
   const latest = weights[0];
   const prev = weights[1];
   document.getElementById('wCurrent').textContent = latest ? latest.w : '—';
+
+  // Напоминание о весе сегодня
+  const reminder = document.getElementById('weightTodayReminder');
+  if (reminder) {
+    const hasToday = weights.some(e => e.date === todayStr());
+    if (hasToday) {
+      reminder.style.display = 'block';
+      reminder.style.color = '#50c850';
+      reminder.textContent = `✅ Сегодня ты вводил вес: ${weights.find(e => e.date === todayStr())?.w} кг`;
+    } else {
+      reminder.style.display = 'block';
+      reminder.style.color = '#f05050';
+      reminder.textContent = '⚠️ Сегодня ты ещё не вводил вес';
+    }
+  }
+
+  // Синхронизируем последний вес в поле настроек
+  const profileWeightEl = document.getElementById('profileWeight');
+  if (profileWeightEl && latest && !profileWeightEl.value) {
+    profileWeightEl.value = latest.w;
+  }
   const dEl = document.getElementById('wDelta');
   if (latest && prev) {
     const diff = (latest.w - prev.w).toFixed(1);
@@ -1944,18 +1966,61 @@ function drawStackedBarChart(svg, days) {
   svg.innerHTML = html;
 }
 function addWeight() {
-  const v = parseFloat(document.getElementById('wInput').value);
-  if (!v || v < 20 || v > 300) { toast('Введи корректный вес'); return; }
+  const wInputEl = document.getElementById('wInput');
+  if (!wInputEl) { toast('Ошибка: поле не найдено'); return; }
+  const v = parseFloat(wInputEl.value);
+  if (!v || v < 20 || v > 300) { toast('Введи вес от 20 до 300 кг'); return; }
+
+  // Всегда сохраняем за сегодня
+  const today = todayStr();
   const weights = loadWeights();
-  const existing = weights.findIndex(e => e.date === currentDate);
+  const existing = weights.findIndex(e => e.date === today);
   if (existing >= 0) weights[existing].w = v;
-  else weights.push({date: currentDate, w: v});
+  else weights.push({ date: today, w: v });
   weights.sort((a,b) => a.date.localeCompare(b.date));
   saveWeights(weights);
-  document.getElementById('wInput').value = '';
+  wInputEl.value = '';
+
+  // Синхронизируем в настройки и пересчитываем цели
+  syncWeightToProfile(v);
   renderWeight();
-  toast('Вес сохранён ✓');
+  toast(`✅ Вес ${v} кг сохранён`);
   autoSync();
+}
+
+function syncWeightToProfile(w) {
+  // Обновляем поле веса в настройках
+  const profileWeightEl = document.getElementById('profileWeight');
+  if (profileWeightEl) profileWeightEl.value = w;
+  // Пересчитываем цели
+  recalcGoals(w);
+}
+
+function recalcGoals(weight) {
+  const profile = loadProfile();
+  const age = parseFloat(profile.age);
+  const height = parseFloat(profile.height);
+  const gender = profile.gender;
+  if (!weight || !age || !height || !gender) return;
+
+  let bmr = gender === 'мужской'
+    ? 10 * weight + 6.25 * height - 5 * age + 5
+    : 10 * weight + 6.25 * height - 5 * age - 161;
+  const actMap = { 'низкая': 1.2, 'средняя': 1.55, 'высокая': 1.725 };
+  const tdee = Math.round(bmr * (actMap[profile.activity] || 1.55));
+  const goalMap = { 'похудение': -400, 'поддержание': 0, 'набор массы': +400 };
+  const calGoal = tdee + (goalMap[profile.goal] || 0);
+  const proteinGoal = Math.round(weight * 1.5);
+  const fatGoal = Math.round(calGoal * 0.25 / 9);
+  const carbGoal = Math.max(Math.round((calGoal - proteinGoal * 4 - fatGoal * 9) / 4), 50);
+
+  const goals = { cal: calGoal, p: proteinGoal, f: fatGoal, c: carbGoal };
+  localStorage.setItem('nd_goals', JSON.stringify(goals));
+
+  // Обновляем поля целей если видны
+  const gc = document.getElementById('goalCal');
+  if (gc) { gc.value = calGoal; document.getElementById('goalP').value = proteinGoal; document.getElementById('goalF').value = fatGoal; document.getElementById('goalC').value = carbGoal; }
+  render();
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
@@ -2010,7 +2075,11 @@ function switchTab(i) {
 
   if (i===1) renderChatList();
   if (i===2) renderSport();
-  if (i===3) renderWeight();
+  if (i===3) {
+    const wDate = document.getElementById('wDate');
+    if (wDate && !wDate.value) wDate.value = todayStr();
+    renderWeight();
+  }
   if (i===4) loadMotivationFields();
 }
 
@@ -2077,18 +2146,26 @@ function addReminder(type) {
   setTimeout(() => toast(`Открываю Напоминания: "${cfg.title}"`), 300);
 }
 
+let profileWeightTimer = null;
 function saveProfileWeight() {
-  const w = parseFloat(document.getElementById('profileWeight').value);
-  if (!w || w < 20 || w > 300) return;
-  // Save to weight tracker too
-  const weights = loadWeights();
-  const today = todayStr();
-  const existing = weights.findIndex(e => e.date === today);
-  if (existing >= 0) weights[existing].w = w;
-  else weights.push({ date: today, w });
-  weights.sort((a,b) => a.date.localeCompare(b.date));
-  saveWeights(weights);
-  renderWeight();
+  clearTimeout(profileWeightTimer);
+  profileWeightTimer = setTimeout(() => {
+    const w = parseFloat(document.getElementById('profileWeight').value);
+    if (!w || w < 20 || w > 300) return;
+    // Сохраняем в трекер за сегодня
+    const weights = loadWeights();
+    const today = todayStr();
+    const existing = weights.findIndex(e => e.date === today);
+    if (existing >= 0) weights[existing].w = w;
+    else weights.push({ date: today, w });
+    weights.sort((a,b) => a.date.localeCompare(b.date));
+    saveWeights(weights);
+    // Пересчитываем цели
+    recalcGoals(w);
+    renderWeight();
+    toast(`✅ Вес ${w} кг · цели пересчитаны`);
+    autoSync();
+  }, 800);
 }
 
 function saveProfile() {
