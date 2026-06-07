@@ -481,7 +481,29 @@
     <!-- PAGE 0 & 1: scrollable pages -->
     <div id="scrollPages" class="scroll">
       <div id="page0" class="page active">
-        <div class="summary-card">
+        <!-- ЧИСТЫЕ КАЛОРИИ -->
+        <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:12px">
+          <div id="ccGoalLabel" style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Норма</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;justify-content:space-between;font-size:14px">
+              <span style="color:var(--text2)">Съедено</span>
+              <span id="ccEaten" style="font-weight:600">0 ккал</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:14px" id="ccSportRow" style="display:none">
+              <span style="color:var(--accent3)">🏋️ Тренировка</span>
+              <span id="ccSport" style="color:var(--accent3);font-weight:600">— ккал</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:14px" id="ccDeficitRow">
+              <span style="color:var(--text2)">Дефицит цели</span>
+              <span id="ccDeficit" style="font-weight:600;color:var(--text2)">— ккал</span>
+            </div>
+            <div style="height:1px;background:var(--border);margin:2px 0"></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:15px;font-weight:700">Чистыми</span>
+              <span id="ccNet" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--cal)">0 ккал</span>
+            </div>
+          </div>
+        </div>
           <div class="cal-big">
             <div class="cal-num" id="totalCal">0</div>
             <div class="cal-sub">ккал</div>
@@ -1447,6 +1469,47 @@ function render() {
   const pct = Math.min(100, (totCal/goals.cal)*100);
   document.getElementById('calProg').style.width = pct + '%';
   document.getElementById('calProg').style.background = pct > 100 ? 'var(--accent3)' : 'var(--cal)';
+
+  // ─── ЧИСТЫЕ КАЛОРИИ ──────────────────────────────────────────────────────────
+  const profile = loadProfile();
+  const sportData = loadSport();
+  const todaySport = (sportData[currentDate] || []).reduce((s,e) => s+e.cal, 0);
+
+  // Определяем дефицит цели
+  const goalMap = {'похудение':-400,'поддержание':0,'набор массы':+400};
+  const goalOffset = goalMap[profile.goal] || 0;
+  const goalNames = {'похудение':'Норма для похудения','поддержание':'Норма для поддержания','набор массы':'Норма для набора массы'};
+  const goalName = goalNames[profile.goal] || 'Норма';
+
+  // Чистыми = норма - съедено - сожжено на тренировке (т.е. сколько осталось)
+  const net = Math.round(goals.cal - totCal - todaySport);
+
+  document.getElementById('ccGoalLabel').textContent = `${goalName}: ${goals.cal} ккал`;
+  document.getElementById('ccEaten').textContent = Math.round(totCal) + ' ккал';
+
+  // Тренировка
+  const sportRow = document.getElementById('ccSportRow');
+  if (todaySport > 0) {
+    sportRow.style.display = 'flex';
+    document.getElementById('ccSport').textContent = `-${todaySport} ккал`;
+  } else {
+    sportRow.style.display = 'none';
+  }
+
+  // Дефицит цели (только если не поддержание)
+  const defRow = document.getElementById('ccDeficitRow');
+  if (goalOffset !== 0) {
+    defRow.style.display = 'flex';
+    document.getElementById('ccDeficit').textContent = `${goalOffset > 0 ? '+' : ''}${goalOffset} ккал`;
+    document.getElementById('ccDeficit').style.color = goalOffset < 0 ? '#50c850' : 'var(--fat)';
+  } else {
+    defRow.style.display = 'none';
+  }
+
+  // Чистыми
+  const netEl = document.getElementById('ccNet');
+  netEl.textContent = net + ' ккал';
+  netEl.style.color = net < 0 ? 'var(--accent3)' : net < goals.cal * 0.2 ? 'var(--fat)' : 'var(--cal)';
 
   // Meals
   const mc = document.getElementById('mealsContainer');
