@@ -24,7 +24,8 @@
     --cal: #c8f050;
     --r: 16px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar { display: none; }
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
 
   /* LAYOUT */
@@ -47,18 +48,42 @@
   }
   .date-btn:active { background: var(--surface); }
 
-  /* TABS */
+  /* BOTTOM NAV - emoji only, fixed overlay */
   .tabs {
-    display: flex; gap: 6px; padding: 0 20px 16px;
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 390px;
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    background: rgba(30, 30, 40, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(200,240,80,0.15);
+    border-radius: 20px;
+    z-index: 100;
     flex-shrink: 0;
   }
   .tab {
-    flex: 1; padding: 9px 4px; border-radius: 10px; border: none;
-    background: var(--surface2); color: var(--text2);
-    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-    cursor: pointer; transition: all .2s;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    border-radius: 14px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
   }
-  .tab.active { background: var(--accent); color: #000; font-weight: 700; }
+  .tab-icon { font-size: 26px; line-height: 1; display: block; transition: transform .15s; }
+  .tab-label { display: none; }
+  .tab.active { background: rgba(200,240,80,0.15); border-radius: 14px; }
+  .tab.active .tab-icon { transform: scale(1.15); }
 
   /* PAGES */
   .page { display: none; }
@@ -66,7 +91,7 @@
   .page.active.chat-page { display: flex; flex-direction: column; }
 
   /* SCROLL AREA */
-  .scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 20px 120px; -webkit-overflow-scrolling: touch; }
+  .scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 20px 90px; -webkit-overflow-scrolling: touch; }
   .scroll::-webkit-scrollbar { display: none; }
   .scroll.no-pad { padding: 0; }
 
@@ -169,7 +194,7 @@
 
   /* FAB */
   .fab {
-    position: fixed; bottom: 90px; right: 20px;
+    position: fixed; bottom: calc(80px + env(safe-area-inset-bottom)); right: 20px;
     width: 58px; height: 58px; border-radius: 29px;
     background: var(--accent); border: none;
     font-size: 28px; color: #000; cursor: pointer;
@@ -465,45 +490,46 @@
         <button class="date-btn" id="dateLbl" onclick="changeDate()" style="flex-shrink:0;height:36px;padding:0 14px">Сегодня</button>
         <button onclick="changeDay(1)" id="nextDayBtn" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent">›</button>
       </div>
+      <div id="sportDateNav" style="display:none;align-items:center;gap:6px">
+        <button onclick="changeSportDay(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent">‹</button>
+        <button class="date-btn" id="sportDayBtn" onclick="changeSportDate()" style="flex-shrink:0;height:36px;padding:0 14px">Сегодня</button>
+        <button onclick="changeSportDay(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent">›</button>
+      </div>
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab(0)">🥗</button>
-    <button class="tab" onclick="switchTab(1)">🤖</button>
-    <button class="tab" onclick="switchTab(2)">🏋️</button>
-    <button class="tab" onclick="switchTab(3)">📈</button>
-    <button class="tab" onclick="switchTab(4)">⚙️</button>
-  </div>
-
-  <div id="contentArea" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0">
+  <div id="contentArea" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden">
 
     <!-- PAGE 0 & 1: scrollable pages -->
     <div id="scrollPages" class="scroll">
-      <div id="page0" class="page active">
+      <div id="page0" class="page" style="display:block">
         <!-- ЧИСТЫЕ КАЛОРИИ -->
-        <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:12px">
-          <div id="ccGoalLabel" style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Норма</div>
-          <div style="display:flex;flex-direction:column;gap:7px">
-            <div style="display:flex;justify-content:space-between;font-size:14px">
-              <span style="color:var(--text2)">Съедено</span>
-              <span id="ccEaten" style="font-weight:600">0 ккал</span>
+        <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:18px;margin-bottom:12px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span id="ccGoalLabel" style="font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text2)">Норма</span>
+              <span id="ccGoalVal" style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--text)">— ккал</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:14px" id="ccSportRow" style="display:none">
-              <span style="color:var(--accent3)">🏋️ Тренировка</span>
-              <span id="ccSport" style="color:var(--accent3);font-weight:600">— ккал</span>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text2)">Съедено</span>
+              <span id="ccEaten" style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--text)">0 ккал</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:14px" id="ccDeficitRow">
-              <span style="color:var(--text2)">Дефицит цели</span>
-              <span id="ccDeficit" style="font-weight:600;color:var(--text2)">— ккал</span>
+            <div style="display:flex;justify-content:space-between;align-items:center" id="ccSportRow">
+              <span style="font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text2)">Тренировка</span>
+              <span id="ccSport" style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--accent3)">— ккал</span>
             </div>
-            <div style="height:1px;background:var(--border);margin:2px 0"></div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:15px;font-weight:700">Чистыми</span>
-              <span id="ccNet" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--cal)">0 ккал</span>
+            <div style="display:flex;justify-content:space-between;align-items:center" id="ccDeficitRow">
+              <span style="font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text2)">Дефицит цели</span>
+              <span id="ccDeficit" style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--text2)">— ккал</span>
+            </div>
+            <div style="height:1px;background:var(--border)"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--text)">Чистыми</span>
+              <span id="ccNet" style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:var(--cal)">0 ккал</span>
             </div>
           </div>
         </div>
+        <div class="summary-card">
           <div class="cal-big">
             <div class="cal-num" id="totalCal">0</div>
             <div class="cal-sub">ккал</div>
@@ -532,12 +558,32 @@
       </div>
 
       <div id="pageSport" class="page" style="display:none">
-        <div class="section-title">🏋️ Тренировка сегодня</div>
+        <div class="section-title">🏋️ Тренировка</div>
         <div class="weight-card">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Введи количество калорий, сожжённых на тренировке. Они будут учтены в дефиците, но не изменят план питания.</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Введи калории вручную или опиши тренировку — ИИ посчитает сам.</div>
           <div class="weight-input-row">
             <input class="w-input" type="number" id="sportCalInput" placeholder="Ккал (напр. 350)">
             <button class="w-btn" onclick="addSportCalories()">Добавить</button>
+          </div>
+        </div>
+
+        <!-- ИИ АНАЛИЗ ТРЕНИРОВКИ -->
+        <div class="section-title">🤖 Анализ тренировки голосом</div>
+        <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:16px">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">Опиши тренировку — ИИ рассчитает потраченные калории с учётом твоего веса</div>
+          <textarea id="sportAiInput" class="form-input" rows="3" placeholder="Например: бегал 40 минут, потом 20 минут силовая тренировка…" style="resize:none;margin-bottom:10px;line-height:1.5;font-size:14px"></textarea>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button id="sportMicBtn" onclick="toggleSportMic()" style="flex:1;padding:11px;border-radius:12px;border:2px solid var(--accent3);background:rgba(240,80,144,.1);color:var(--accent3);font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px">🎤 Говорить</button>
+            <button onclick="analyzeSportAI()" style="flex:2;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#c8f050,#50f0c8);color:#000;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;font-size:14px" id="sportAiBtn">✨ Рассчитать</button>
+          </div>
+          <div id="sportAiResult" style="display:none;background:var(--surface2);border-radius:12px;padding:14px">
+            <div style="font-size:13px;color:var(--text2);margin-bottom:8px">Расчёт ИИ:</div>
+            <div id="sportAiText" style="font-size:14px;line-height:1.6;margin-bottom:12px"></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent3)" id="sportAiCal">0</div>
+              <div style="font-size:13px;color:var(--text2)">ккал</div>
+              <button onclick="addSportFromAI()" style="margin-left:auto;padding:10px 18px;border-radius:10px;border:none;background:var(--accent3);color:#fff;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Добавить</button>
+            </div>
           </div>
         </div>
 
@@ -553,35 +599,31 @@
       </div>
 
       <div id="page1" class="page" style="display:none">
-        <!-- WEIGHT SECTION -->
+        <!-- WEIGHT BLOCK (ввод + график в одном фоне) -->
         <div class="section-title">⚖️ Вес</div>
-        <div class="weight-card">
+        <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:20px;margin-bottom:16px">
           <div class="weight-current">
             <div class="weight-num" id="wCurrent">—</div>
             <div class="weight-unit">кг</div>
             <div class="weight-delta same" id="wDelta" style="margin-left:12px;display:none"></div>
           </div>
-          <div class="weight-input-row">
+          <div class="weight-input-row" style="margin-top:12px">
             <input class="w-input" type="number" step="0.1" placeholder="Введи вес (кг)" id="wInput">
             <button class="w-btn" onclick="addWeight()">Добавить</button>
           </div>
-        </div>
-
-        <!-- WEIGHT CHART -->
-        <div class="section-title" id="weightChartTitle">График веса</div>
-        <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:16px">
+          <div id="weightChartTitle" style="font-size:11px;color:var(--text2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;font-weight:600"></div>
           <svg id="weightChart" width="100%" height="160" style="overflow:visible"></svg>
-          <div id="weightChartEmpty" style="text-align:center;color:var(--text2);font-size:13px;padding:20px 0;display:none">Добавь первый замер веса</div>
+          <div id="weightChartEmpty" style="text-align:center;color:var(--text2);font-size:13px;padding:16px 0;display:none">Добавь первый замер веса</div>
         </div>
 
-        <!-- CALORIES CHART -->
-        <div class="section-title" style="margin-top:4px">🔥 Калории по дням</div>
+        <!-- DEFICIT CHART -->
+        <div class="section-title" style="margin-top:4px">📊 Общий дефицит по дням</div>
         <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:16px">
-          <svg id="calChart" width="100%" height="160" style="overflow:visible"></svg>
-          <div id="calChartEmpty" style="text-align:center;color:var(--text2);font-size:13px;padding:20px 0;display:none">Записывай питание чтобы увидеть динамику</div>
-          <div id="calChartLegend" style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:11px;color:var(--text2)">
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:var(--cal);display:inline-block;border-radius:2px"></span>Калории</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:var(--accent2);display:inline-block;border-radius:2px;border:1px dashed var(--accent2)"></span>Норма</span>
+          <svg id="deficitChart" width="100%" height="160" style="overflow:visible"></svg>
+          <div id="deficitChartEmpty" style="text-align:center;color:var(--text2);font-size:13px;padding:20px 0;display:none">Записывай питание чтобы увидеть дефицит</div>
+          <div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:11px;color:var(--text2)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--accent);border-radius:2px;display:inline-block"></span>Еда</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--accent3);border-radius:2px;display:inline-block"></span>Тренировка</span>
           </div>
         </div>
 
@@ -599,9 +641,9 @@
     </div>
 
     <!-- PAGE 2: AI CHAT -->
-    <div id="page2" style="display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0">
+    <div id="page2" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;height:100%">
       <div id="chatListView" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
-        <div style="flex:1;overflow-y:auto;padding:16px 20px 120px;-webkit-overflow-scrolling:touch">
+        <div style="flex:1;overflow-y:auto;padding:16px 20px 120px;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none">
           <div style="margin-bottom:16px">
             <div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Быстрый старт</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -628,7 +670,7 @@
           </div>
           <button onclick="deleteCurrentChat()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;flex-shrink:0">🗑</button>
         </div>
-        <div id="chatMessages" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch"></div>
+        <div id="chatMessages" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none"></div>
         <div style="flex-shrink:0;padding:10px 12px;border-top:1px solid var(--border);background:var(--surface)">
           <div style="display:flex;gap:8px;align-items:flex-end">
             <button id="chatMicBtn" onclick="toggleChatMic()"
@@ -646,7 +688,7 @@
     </div>
 
     <!-- PAGE 3: SETTINGS -->
-    <div id="page3" style="display:none;flex:1;overflow-y:auto;padding:0 20px 120px;-webkit-overflow-scrolling:touch">
+    <div id="page3" style="display:none;flex:1;overflow-y:auto;padding:0 20px 90px;-webkit-overflow-scrolling:touch;min-height:0;scrollbar-width:none;-ms-overflow-style:none">
       <div class="section-title">👤 Профиль</div>
       <div class="settings-card">
         <div class="settings-row">
@@ -689,32 +731,6 @@
       <button onclick="saveProfile()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#c8f050,#50f0c8);color:#000;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:20px">
         ✨ Рассчитать цели
       </button>
-      <div class="section-title">☁️ Синхронизация с GitHub</div>
-      <div class="settings-card">
-        <div class="settings-row">
-          <div><div class="sr-label">GitHub токен</div><div class="sr-sub">Для сохранения данных</div></div>
-        </div>
-        <div style="padding:0 16px 12px">
-          <input class="form-input" type="password" id="githubToken" placeholder="ghp_..." style="font-size:13px;margin-bottom:8px" onchange="localStorage.setItem('nd_gh_token', this.value)">
-          <input class="form-input" type="text" id="githubRepo" placeholder="sovaincorp-stack/nutrition-diary" style="font-size:13px;margin-bottom:8px" onchange="localStorage.setItem('nd_gh_repo', this.value)">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Формат репозитория: username/nutrition-diary</div>
-          <div style="display:flex;gap:8px">
-            <button onclick="syncToGitHub()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--accent);color:#000;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer">☁️ Сохранить в GitHub</button>
-            <button onclick="syncFromGitHub()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">⬇️ Загрузить</button>
-          </div>
-          <div id="syncStatus" style="font-size:12px;margin-top:8px;text-align:center;min-height:16px"></div>
-        </div>
-      </div>
-      <div class="section-title">ИИ функции</div>
-      <div class="settings-card">
-        <div class="settings-row">
-          <div><div class="sr-label">OpenAI API ключ</div><div class="sr-sub">Для фото-анализа и советника</div></div>
-        </div>
-        <div style="padding:0 16px 16px">
-          <input class="form-input" type="password" id="openaiKey" placeholder="sk-..." onchange="saveApiKey()" style="font-size:13px">
-          <div style="font-size:11px;color:var(--text2);margin-top:6px">Ключ хранится только на устройстве. Получить: platform.openai.com → API keys</div>
-        </div>
-      </div>
       <div class="section-title">Цели</div>
       <div style="font-size:12px;color:var(--text2);margin:-8px 0 10px;line-height:1.5">Заполни профиль и добавь вес — цели рассчитаются автоматически. Или задай вручную.</div>
       <div class="settings-card">
@@ -742,8 +758,53 @@
           <div style="color:var(--text2)">›</div>
         </div>
       </div>
+      <div class="section-title">🤖 OpenAI API</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="sr-label">API ключ</div><div class="sr-sub">Для фото-анализа и советника</div></div>
+        </div>
+        <div style="padding:0 16px 16px">
+          <input class="form-input" type="password" id="openaiKey" placeholder="sk-..." onchange="saveApiKey()" style="font-size:13px">
+          <div style="font-size:11px;color:var(--text2);margin-top:6px">Ключ хранится только на устройстве. Получить: platform.openai.com → API keys</div>
+        </div>
+      </div>
+      <div class="section-title">☁️ Синхронизация с GitHub</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="sr-label">GitHub токен</div><div class="sr-sub">Для сохранения данных</div></div>
+        </div>
+        <div style="padding:0 16px 12px">
+          <input class="form-input" type="password" id="githubToken" placeholder="ghp_..." style="font-size:13px;margin-bottom:8px" onchange="localStorage.setItem('nd_gh_token', this.value)">
+          <input class="form-input" type="text" id="githubRepo" placeholder="sovaincorp-stack/nutrition-diary" style="font-size:13px;margin-bottom:8px" onchange="localStorage.setItem('nd_gh_repo', this.value)">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Формат репозитория: username/nutrition-diary</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="syncToGitHub()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--accent);color:#000;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer">☁️ Сохранить</button>
+            <button onclick="syncFromGitHub()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">⬇️ Загрузить</button>
+          </div>
+          <div id="syncStatus" style="font-size:12px;margin-top:8px;text-align:center;min-height:16px"></div>
+        </div>
+      </div>
     </div>
 
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="tabs">
+    <button class="tab" onclick="switchTab(2)">
+      <span class="tab-icon">🏋️</span><span class="tab-label">Спорт</span>
+    </button>
+    <button class="tab active" onclick="switchTab(0)">
+      <span class="tab-icon">🥗</span><span class="tab-label">Питание</span>
+    </button>
+    <button class="tab" onclick="switchTab(1)">
+      <span class="tab-icon">🤖</span><span class="tab-label">ИИ</span>
+    </button>
+    <button class="tab" onclick="switchTab(3)">
+      <span class="tab-icon">📈</span><span class="tab-label">Динамика</span>
+    </button>
+    <button class="tab" onclick="switchTab(4)">
+      <span class="tab-icon">⚙️</span><span class="tab-label">Настройки</span>
+    </button>
   </div>
 </div>
 
@@ -1481,17 +1542,18 @@ function render() {
   const goalNames = {'похудение':'Норма для похудения','поддержание':'Норма для поддержания','набор массы':'Норма для набора массы'};
   const goalName = goalNames[profile.goal] || 'Норма';
 
-  // Чистыми = норма - съедено - сожжено на тренировке (т.е. сколько осталось)
-  const net = Math.round(goals.cal - totCal - todaySport);
+  // Чистыми = норма - съедено + тренировка (тренировка увеличивает бюджет)
+  const net = Math.round(goals.cal - totCal + todaySport);
 
-  document.getElementById('ccGoalLabel').textContent = `${goalName}: ${goals.cal} ккал`;
+  document.getElementById('ccGoalLabel').textContent = goalName;
+  document.getElementById('ccGoalVal').textContent = goals.cal + ' ккал';
   document.getElementById('ccEaten').textContent = Math.round(totCal) + ' ккал';
 
-  // Тренировка
+  // Тренировка — показываем со знаком +
   const sportRow = document.getElementById('ccSportRow');
   if (todaySport > 0) {
     sportRow.style.display = 'flex';
-    document.getElementById('ccSport').textContent = `-${todaySport} ккал`;
+    document.getElementById('ccSport').textContent = `+${todaySport} ккал`;
   } else {
     sportRow.style.display = 'none';
   }
@@ -1647,109 +1709,107 @@ function renderWeight() {
   }
   const goals = loadGoals();
   const data = loadData();
-  const calDays = [];
+
+  // TDEE для расчёта дефицита
+  const profileW = loadProfile();
+  const weightsForTdee = loadWeights();
+  const wForTdee = weightsForTdee.length ? weightsForTdee[weightsForTdee.length-1].w : null;
+  const ageW = parseFloat(profileW.age), htW = parseFloat(profileW.height);
+  let tdee = goals.cal;
+  if (wForTdee && ageW && htW && profileW.gender) {
+    let bmr = profileW.gender==='мужской' ? 10*wForTdee+6.25*htW-5*ageW+5 : 10*wForTdee+6.25*htW-5*ageW-161;
+    tdee = Math.round(bmr * ({'низкая':1.2,'средняя':1.55,'высокая':1.725}[profileW.activity]||1.55));
+  }
+
+  // ─── DEFICIT CHART (еда + тренировка) ────────────────────────────────────────
+  const deficitDays = [];
   for (let i = 13; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const ds = d.toISOString().slice(0,10);
-    const dayData = data[ds] || {};
+    const dayData2 = data[ds] || {};
     let cal = 0;
-    MEALS.forEach(m => (dayData[m.id]||[]).forEach(item => cal += item.cal));
-    if (cal > 0) calDays.push({ date: ds, cal: Math.round(cal) });
+    MEALS.forEach(m => (dayData2[m.id]||[]).forEach(item => cal += item.cal));
+    const sportCal = (sportData[ds]||[]).reduce((s,e)=>s+e.cal,0);
+    const foodDeficit = Math.max(0, Math.round(tdee - cal));
+    if (cal > 0 || sportCal > 0) {
+      deficitDays.push({ date: ds, food: foodDeficit, sport: sportCal });
+    }
   }
-  const cSvg = document.getElementById('calChart');
-  const cEmpty = document.getElementById('calChartEmpty');
-  if (calDays.length < 1) {
-    cSvg.innerHTML = ''; cEmpty.style.display = 'block';
+  const dSvg = document.getElementById('deficitChart');
+  const dEmpty = document.getElementById('deficitChartEmpty');
+  if (!deficitDays.length) {
+    if(dSvg) dSvg.innerHTML = ''; if(dEmpty) dEmpty.style.display = 'block';
   } else {
-    cEmpty.style.display = 'none';
-    drawBarChart(cSvg, calDays.map(e=>e.cal), calDays.map(e=>e.date), goals.cal);
+    if(dEmpty) dEmpty.style.display = 'none';
+    if(dSvg) drawStackedBarChart(dSvg, deficitDays);
   }
 
   // ─── MACRO AVERAGES ─────────────────────────────────────────────────────────
-  let avgCal=0,avgP=0,avgF=0,avgC=0,cnt=0;
+  // Считаем суммарный дефицит за 7 дней
+  let totalFoodCal = 0, totalSport7 = 0, cnt7 = 0;
   for (let i=6;i>=0;i--) {
     const d = new Date(); d.setDate(d.getDate()-i);
     const ds = d.toISOString().slice(0,10);
     const dd = data[ds]||{};
-    let c=0,p=0,f=0,cc=0,has=false;
-    MEALS.forEach(m=>(dd[m.id]||[]).forEach(item=>{c+=item.cal;p+=item.p;f+=item.f;cc+=item.c;has=true;}));
-    if(has){avgCal+=c;avgP+=p;avgF+=f;avgC+=cc;cnt++;}
+    let c=0, has=false;
+    MEALS.forEach(m=>(dd[m.id]||[]).forEach(item=>{c+=item.cal;has=true;}));
+    const sp = (sportData[ds]||[]).reduce((s,e)=>s+e.cal,0);
+    if(has||sp>0){ totalFoodCal+=c; totalSport7+=sp; cnt7++; }
   }
   const macroEl = document.getElementById('macroAvg');
-  if (!cnt) {
+  if (!cnt7) {
     macroEl.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:13px;padding:12px">Нет данных за неделю</div>';
   } else {
-    const aC=Math.round(avgCal/cnt), aP=Math.round(avgP/cnt), aF=Math.round(avgF/cnt), aCC=Math.round(avgC/cnt);
-    const profile = loadProfile();
-    const userGoal = profile.goal || 'поддержание';
-
-    // Рассчитаем TDEE (поддержание) без поправки на цель
-    const weights2 = loadWeights();
-    const w = weights2.length ? weights2[weights2.length-1].w : null;
-    const age2 = parseFloat(profile.age);
-    const height2 = parseFloat(profile.height);
-    let tdee = goals.cal; // fallback
-    if (w && age2 && height2 && profile.gender) {
-      let bmr = profile.gender === 'мужской'
-        ? 10*w + 6.25*height2 - 5*age2 + 5
-        : 10*w + 6.25*height2 - 5*age2 - 161;
-      const actMap = {'низкая':1.2,'средняя':1.55,'высокая':1.725};
-      tdee = Math.round(bmr * (actMap[profile.activity]||1.55));
+    const profile7 = loadProfile();
+    const w7 = loadWeights(); const ww = w7.length ? w7[w7.length-1].w : null;
+    const age7 = parseFloat(profile7.age), ht7 = parseFloat(profile7.height);
+    let tdee7 = goals.cal;
+    if (ww&&age7&&ht7&&profile7.gender) {
+      let bmr7 = profile7.gender==='мужской' ? 10*ww+6.25*ht7-5*age7+5 : 10*ww+6.25*ht7-5*age7-161;
+      tdee7 = Math.round(bmr7*({'низкая':1.2,'средняя':1.55,'высокая':1.725}[profile7.activity]||1.55));
     }
 
-    function deficitCard(label, actual, referenceVal, unit) {
-      let diff, word, color;
-      if (userGoal === 'похудение') {
-        // При похудении: сколько сэкономили от нормы поддержания (больше = лучше)
-        diff = referenceVal - actual;
-        const isGood = diff >= 0;
-        color = isGood ? '#50c850' : 'var(--accent3)';
-        word = isGood ? '🟢 Дефицит от поддержания' : '🔴 Перебор от поддержания';
-      } else if (userGoal === 'набор массы') {
-        // При наборе: профицит = съел больше нормы (больше = лучше)
-        diff = actual - referenceVal;
-        const isGood = diff >= 0;
-        color = isGood ? '#50c850' : 'var(--accent3)';
-        word = isGood ? '🟢 Профицит' : '🔴 Недобор';
-      } else {
-        // Поддержание: просто отклонение от цели
-        diff = referenceVal - actual;
-        const isGood = Math.abs(diff) < referenceVal * 0.05;
-        color = isGood ? '#50c850' : Math.abs(diff) < referenceVal * 0.1 ? 'var(--cal)' : 'var(--accent3)';
-        word = isGood ? '🎯 В норме' : diff > 0 ? '🟢 Экономия' : '🔴 Перебор';
-      }
-      const sign = diff > 0 ? '+' : '';
-      return `<div style="background:var(--surface2);border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--text2);margin-bottom:4px">${label}</div>
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:${color}">${sign}${diff}${unit}</div>
-        <div style="font-size:10px;color:var(--text2);margin-top:2px">${word}</div>
-        <div style="font-size:10px;color:var(--text2)">съедено ${actual}${unit}</div>
-      </div>`;
-    }
+    // Дефицит от еды = TDEE * дни - съедено
+    const foodDeficit7 = Math.max(0, Math.round(tdee7 * cnt7 - totalFoodCal));
+    const sportDeficit7 = Math.round(totalSport7);
+    const totalDeficit7 = foodDeficit7 + sportDeficit7;
 
-    // Считаем среднее сожжённых на тренировках за те же дни
-    let avgSport = 0;
-    for (let i=6;i>=0;i--) {
-      const d = new Date(); d.setDate(d.getDate()-i);
-      const ds = d.toISOString().slice(0,10);
-      avgSport += (sportData[ds]||[]).reduce((s,e)=>s+e.cal,0);
-    }
-    avgSport = Math.round(avgSport / cnt);
+    // 1 кг жира ≈ 7700 ккал
+    const kgFood  = (foodDeficit7  / 7700).toFixed(2);
+    const kgSport = (sportDeficit7 / 7700).toFixed(2);
+    const kgTotal = (totalDeficit7 / 7700).toFixed(2);
 
-    const goalLabel = userGoal === 'похудение' ? 'дефицит от поддержания' : userGoal === 'набор массы' ? 'профицит от поддержания' : 'отклонение от цели';
     macroEl.innerHTML = `
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;text-align:center">Среднее за ${cnt} дн. · ${goalLabel}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        ${deficitCard('🔥 Калории', aC, userGoal==='поддержание'?goals.cal:tdee, ' ккал')}
-        ${deficitCard('💪 Белки',   aP, goals.p,  'г')}
-        ${deficitCard('🧈 Жиры',    aF, goals.f,  'г')}
-        ${deficitCard('🍞 Углеводы',aCC, goals.c, 'г')}
-      </div>
-      ${avgSport > 0 ? `<div style="margin-top:10px;background:rgba(240,80,144,.1);border:1px solid var(--accent3);border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--text2);margin-bottom:4px">🏋️ Доп. дефицит от тренировок</div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent3)">+${avgSport} ккал</div>
-        <div style="font-size:10px;color:var(--text2);margin-top:2px">среднее в день</div>
-      </div>` : ''}`;
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;text-align:center">За ${cnt7} дн. · 1 кг жира ≈ 7700 ккал</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:12px;padding:14px">
+          <div>
+            <div style="font-size:13px;color:var(--text2)">🥗 Дефицит от еды</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${foodDeficit7} ккал</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent)">~${kgFood} кг</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:12px;padding:14px">
+          <div>
+            <div style="font-size:13px;color:var(--text2)">🏋️ Дефицит от тренировок</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${sportDeficit7} ккал</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent3)">~${kgSport} кг</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(200,240,80,.12),rgba(80,200,240,.12));border:1px solid var(--border);border-radius:12px;padding:14px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">⚡ Итого</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${totalDeficit7} ккал</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent)">~${kgTotal} кг</div>
+          </div>
+        </div>
+      </div>`;
   }
 
   // History removed - chart only
@@ -1821,7 +1881,36 @@ function drawBarChart(svg, vals, labels, goalVal) {
   svg.innerHTML = html;
 }
 
-// ─── WEIGHT ───────────────────────────────────────────────────────────────────
+function drawStackedBarChart(svg, days) {
+  if (!svg || !days.length) return;
+  const W=300, H=160, PL=40, PR=10, PT=10, PB=30;
+  const mx = Math.max(...days.map(d => d.food + d.sport), 100);
+  const bw = Math.max(4, Math.floor((W-PL-PR)/days.length - 3));
+  const xFn = i => PL + i*(W-PL-PR)/days.length + ((W-PL-PR)/days.length - bw)/2;
+  const yFn = v => PT + (1 - v/mx)*(H-PT-PB);
+  let html = '';
+  for(let g=0;g<=4;g++){
+    const gy = PT + g*(H-PT-PB)/4;
+    html += `<line x1="${PL}" y1="${gy}" x2="${W-PR}" y2="${gy}" stroke="var(--border)" stroke-width="1"/>`;
+    html += `<text x="${PL-4}" y="${gy+4}" fill="var(--text2)" font-size="9" text-anchor="end">${Math.round(mx-g*mx/4)}</text>`;
+  }
+  days.forEach((d,i) => {
+    const bx = xFn(i);
+    const total = d.food + d.sport;
+    const totalH = Math.max(H-PB-yFn(total), 2);
+    const sportH = total > 0 ? Math.round(totalH * d.sport / total) : 0;
+    const foodH = totalH - sportH;
+    const topY = yFn(total);
+    if(foodH > 0) html += `<rect x="${bx}" y="${topY + sportH}" width="${bw}" height="${foodH}" rx="2" fill="var(--accent)"/>`;
+    if(sportH > 0) html += `<rect x="${bx}" y="${topY}" width="${bw}" height="${sportH}" rx="2" fill="var(--accent3)"/>`;
+    if(days.length<=7 || i===0 || i===days.length-1){
+      const lbl = new Date(d.date+'T00:00:00').toLocaleDateString('ru',{day:'numeric',month:'short'});
+      html += `<text x="${bx+bw/2}" y="${H-2}" fill="var(--text2)" font-size="8" text-anchor="middle">${lbl}</text>`;
+    }
+  });
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML = html;
+}
 function addWeight() {
   const v = parseFloat(document.getElementById('wInput').value);
   if (!v || v < 20 || v > 300) { toast('Введи корректный вес'); return; }
@@ -1842,24 +1931,49 @@ const TAB_TITLES = ['🥗 Питание', '🤖 ИИ-советник', '🏋�
 
 function switchTab(i) {
   currentTab = i;
-  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
+  // Подсвечиваем кнопку с нужным switchTab(i)
+  document.querySelectorAll('.tab').forEach(t => {
+    const match = t.getAttribute('onclick') === `switchTab(${i})`;
+    t.classList.toggle('active', match);
+  });
 
   const scrollPages = document.getElementById('scrollPages');
   const page0 = document.getElementById('page0');
   const pageSport = document.getElementById('pageSport');
-  const page1 = document.getElementById('page1'); // Динамика
-  const page2 = document.getElementById('page2'); // ИИ чат
-  const page3 = document.getElementById('page3'); // Настройки
+  const page1 = document.getElementById('page1');
+  const page2 = document.getElementById('page2');
+  const page3 = document.getElementById('page3');
 
-  scrollPages.style.display = (i===0||i===2||i===3) ? '' : 'none';
-  page0.style.display     = i===0 ? 'block' : 'none';
-  page2.style.display     = i===1 ? 'flex'  : 'none';
-  pageSport.style.display = i===2 ? 'block' : 'none';
-  page1.style.display     = i===3 ? 'block' : 'none';
-  page3.style.display     = i===4 ? 'block' : 'none';
+  // Скрыть всё
+  scrollPages.style.display = 'none';
+  page0.style.display = 'none';
+  pageSport.style.display = 'none';
+  page1.style.display = 'none';
+  page2.style.display = 'none';
+  page3.style.display = 'none';
+
+  // Показать нужное
+  if (i === 0) {
+    scrollPages.style.display = '';
+    page0.style.display = 'block';
+    scrollPages.scrollTop = 0;
+  } else if (i === 1) {
+    page2.style.display = 'flex';
+  } else if (i === 2) {
+    scrollPages.style.display = '';
+    pageSport.style.display = 'block';
+    scrollPages.scrollTop = 0;
+  } else if (i === 3) {
+    scrollPages.style.display = '';
+    page1.style.display = 'block';
+    scrollPages.scrollTop = 0;
+  } else if (i === 4) {
+    page3.style.display = 'block';
+  }
 
   document.getElementById('fabBtn').style.display  = i===0 ? '' : 'none';
   document.getElementById('dateNav').style.display = i===0 ? 'flex' : 'none';
+  document.getElementById('sportDateNav').style.display = i===2 ? 'flex' : 'none';
   document.getElementById('appTitle').textContent  = TAB_TITLES[i];
 
   if (i===1) renderChatList();
@@ -2061,16 +2175,102 @@ function getTodaySportCal() {
   return (sport[todayStr()] || []).reduce((s, e) => s + e.cal, 0);
 }
 
+// ─── SPORT AI ─────────────────────────────────────────────────────────────────
+let sportMicRecognition = null;
+let sportAiCalResult = 0;
+
+function toggleSportMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('Голосовой ввод недоступен в этом браузере'); return; }
+  if (sportMicRecognition) { sportMicRecognition.stop(); return; }
+  sportMicRecognition = new SR();
+  sportMicRecognition.lang = 'ru-RU';
+  sportMicRecognition.continuous = false;
+  sportMicRecognition.interimResults = false;
+  sportMicRecognition.onstart = () => {
+    const btn = document.getElementById('sportMicBtn');
+    btn.textContent = '⏹ Стоп'; btn.style.background = 'var(--accent3)'; btn.style.color = '#fff';
+  };
+  sportMicRecognition.onresult = e => {
+    const text = e.results[0][0].transcript;
+    const inp = document.getElementById('sportAiInput');
+    inp.value = (inp.value + ' ' + text).trim();
+  };
+  sportMicRecognition.onend = () => {
+    sportMicRecognition = null;
+    const btn = document.getElementById('sportMicBtn');
+    btn.textContent = '🎤 Говорить'; btn.style.background = ''; btn.style.color = 'var(--accent3)';
+  };
+  sportMicRecognition.onerror = () => { sportMicRecognition = null; };
+  sportMicRecognition.start();
+}
+
+async function analyzeSportAI() {
+  const text = document.getElementById('sportAiInput').value.trim();
+  if (!text) { toast('Опиши тренировку'); return; }
+  const apiKey = localStorage.getItem('nd_openai_key');
+  if (!apiKey) { toast('Добавь OpenAI API ключ в Настройках'); return; }
+
+  const profile = loadProfile();
+  const weights = loadWeights();
+  const w = weights.length ? weights[weights.length-1].w : 75;
+
+  const btn = document.getElementById('sportAiBtn');
+  btn.disabled = true; btn.textContent = '⏳...';
+  document.getElementById('sportAiResult').style.display = 'none';
+
+  try {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'gpt-4o', max_tokens: 300,
+        messages: [{ role: 'user', content:
+          `Пользователь описал тренировку. Рассчитай потраченные калории.
+Данные: вес ${w}кг, пол ${profile.gender||'не указан'}, возраст ${profile.age||'?'}.
+Тренировка: "${text}"
+Отвечай ТОЛЬКО JSON без лишнего текста: {"cal":350,"explanation":"40 мин бег ~300 ккал + 20 мин силовая ~150 ккал"}`
+        }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.choices?.[0]?.message?.content || '';
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    sportAiCalResult = parsed.cal;
+    document.getElementById('sportAiCal').textContent = parsed.cal;
+    document.getElementById('sportAiText').textContent = parsed.explanation;
+    document.getElementById('sportAiResult').style.display = 'block';
+  } catch(e) { toast('Ошибка: ' + e.message); }
+
+  btn.disabled = false; btn.textContent = '✨ Рассчитать';
+}
+
+function addSportFromAI() {
+  if (!sportAiCalResult) return;
+  const sport = loadSport();
+  const today = todayStr();
+  if (!sport[today]) sport[today] = [];
+  const note = document.getElementById('sportAiInput').value.slice(0, 50);
+  sport[today].push({ cal: sportAiCalResult, time: new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}), note });
+  saveSport(sport);
+  document.getElementById('sportAiResult').style.display = 'none';
+  document.getElementById('sportAiInput').value = '';
+  sportAiCalResult = 0;
+  renderSport(); render();
+  toast(`🏋️ ${sport[today][sport[today].length-1].cal} ккал добавлено`);
+  autoSync();
+}
+
 function addSportCalories() {
   const val = parseFloat(document.getElementById('sportCalInput').value);
   if (!val || val <= 0) { toast('Введи количество калорий'); return; }
   const sport = loadSport();
-  const today = todayStr();
-  if (!sport[today]) sport[today] = [];
-  sport[today].push({ cal: val, time: new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'}) });
+  if (!sport[currentSportDate]) sport[currentSportDate] = [];
+  sport[currentSportDate].push({ cal: val, time: new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'}), note: '' });
   saveSport(sport);
   document.getElementById('sportCalInput').value = '';
-  renderSport();
+  renderSport(); render();
   toast(`🏋️ ${val} ккал добавлено`);
   autoSync();
 }
@@ -2080,30 +2280,56 @@ function deleteSportEntry(date, idx) {
   if (sport[date]) sport[date].splice(idx, 1);
   saveSport(sport);
   renderSport();
+  render();
   autoSync();
+}
+
+let currentSportDate = todayStr();
+
+function changeSportDay(dir) {
+  const parts = currentSportDate.split('-');
+  const d = new Date(Date.UTC(+parts[0], +parts[1]-1, +parts[2]));
+  d.setUTCDate(d.getUTCDate() + dir);
+  currentSportDate = d.toISOString().slice(0,10);
+  renderSport();
+}
+
+function changeSportDate() {
+  const d = prompt('Введи дату (ГГГГ-ММ-ДД):', currentSportDate);
+  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    currentSportDate = d;
+    renderSport();
+  }
 }
 
 function renderSport() {
   const sport = loadSport();
+  const entries = sport[currentSportDate] || [];
+  const total = entries.reduce((s, e) => s + e.cal, 0);
+
+  document.getElementById('sportTodayTotal').textContent = total;
+
+  // Обновляем кнопку даты
   const today = todayStr();
-  const todayEntries = sport[today] || [];
-  const todayTotal = todayEntries.reduce((s, e) => s + e.cal, 0);
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yStr = yesterday.toISOString().slice(0,10);
+  let lbl = currentSportDate === today ? 'Сегодня'
+    : currentSportDate === yStr ? 'Вчера'
+    : new Date(currentSportDate+'T00:00:00').toLocaleDateString('ru',{day:'numeric',month:'long'});
+  document.getElementById('sportDayBtn').textContent = lbl;
 
-  document.getElementById('sportTodayTotal').textContent = todayTotal;
-
-  // Today entries
   const hist = document.getElementById('sportHistory');
-  if (!todayEntries.length) {
-    hist.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">Нет тренировок сегодня</div>';
+  if (!entries.length) {
+    hist.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">Нет тренировок за этот день</div>';
   } else {
-    hist.innerHTML = todayEntries.map((e, i) => `
+    hist.innerHTML = entries.map((e, i) => `
       <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)">
         <span style="font-size:20px;margin-right:12px">🔥</span>
         <div style="flex:1">
           <div style="font-weight:600;font-size:14px">${e.cal} ккал</div>
-          <div style="font-size:11px;color:var(--text2)">${e.time}</div>
+          <div style="font-size:11px;color:var(--text2)">${e.time}${e.note ? ' · ' + e.note : ''}</div>
         </div>
-        <button onclick="deleteSportEntry('${today}',${i})" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">×</button>
+        <button onclick="deleteSportEntry('${currentSportDate}',${i})" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">×</button>
       </div>
     `).join('');
   }
@@ -2145,6 +2371,10 @@ function buildSystemContext() {
   const remF   = Math.max(0, goals.f  - Math.round(todayF));
   const remC   = Math.max(0, goals.c  - Math.round(todayC));
 
+  // Тренировки сегодня
+  const sportToday = loadSport()[todayStr()] || [];
+  const sportCalToday = sportToday.reduce((s,e)=>s+e.cal, 0);
+
   return `Ты персональный диетолог и нутрициолог. У тебя есть все данные о пользователе.
 
 ПРОФИЛЬ: пол=${profile.gender||'не указан'}, возраст=${profile.age||'?'}, рост=${profile.height||'?'}см, вес=${latestWeight||'?'}кг, активность=${profile.activity}, цель=${profile.goal}
@@ -2154,17 +2384,22 @@ function buildSystemContext() {
 СЕГОДНЯ СЪЕДЕНО: ${Math.round(todayCal)}ккал | Б${Math.round(todayP)}г Ж${Math.round(todayF)}г У${Math.round(todayC)}г
 ${todayMeals.length ? todayMeals.join('\n') : 'Ничего не записано'}
 
-ОСТАЛОСЬ НА СЕГОДНЯ: ${remCal}ккал | Б${remP}г Ж${remF}г У${remC}г
+ТРЕНИРОВКИ СЕГОДНЯ: ${sportCalToday > 0 ? `сожжено ${sportCalToday} ккал` : 'нет'}
+ЧИСТЫЙ ОСТАТОК (с учётом тренировки): ${remCal + sportCalToday}ккал
+
+ОСТАЛОСЬ БЕЗ ТРЕНИРОВКИ: ${remCal}ккал | Б${remP}г Ж${remF}г У${remC}г
 
 ПРАВИЛА:
 - Отвечай на русском, дружелюбно и конкретно
+- Учитывай тренировки при рекомендациях — если человек потренировался, его реальный бюджет калорий больше
+- ДЛЯ КАЛОРИЙНОСТИ ПРОДУКТОВ: используй ТОЛЬКО базу данных USDA FoodData Central (fdc.nal.usda.gov). Это официальная база Министерства сельского хозяйства США. Никогда не придумывай цифры — только USDA. Если продукта нет в USDA — используй ближайший аналог из той же базы и скажи об этом.
+- ДЛЯ РАСЧЁТА КАЛОРИЙ ТРЕНИРОВОК: используй формулы MET (Metabolic Equivalent of Task) из базы Compendium of Physical Activities (Ainsworth et al.). Всегда учитывай вес пользователя: Калории = MET × вес(кг) × время(ч).
 - Когда предлагаешь блюдо/продукт для добавления в дневник, в конце ответа добавь специальный блок в формате:
   |||ADD_TO_DIARY|||{"name":"Название блюда","cal":250,"p":15,"f":8,"c":30,"meal":"breakfast"}|||
   meal может быть: breakfast, lunch, dinner, snack
-- КРИТИЧЕСКИ ВАЖНО: в блоке ADD_TO_DIARY ВСЕГДА указывай ВСЕ четыре значения: cal (калории), p (белки г), f (жиры г), c (углеводы г). Никогда не оставляй p, f или c равными 0 если это реальная еда — рассчитай реальные значения БЖУ.
-- Если пользователь говорит "добавь", "записывай", "съел X", "пересчитай" — сразу добавь в дневник через этот блок со всеми значениями КБЖУ
-- Если пользователь говорит что съел то же блюдо но другое количество — пересчитай все значения пропорционально и добавь
-- Учитывай остаток калорий и БЖУ при рекомендациях
+- КРИТИЧЕСКИ ВАЖНО: в блоке ADD_TO_DIARY ВСЕГДА указывай ВСЕ четыре значения: cal, p, f, c. Никогда не оставляй нули для реальной еды.
+- Если пользователь говорит "добавь", "съел X", "пересчитай" — сразу добавь в дневник
+- Если пользователь говорит что съел то же блюдо но другое количество — пересчитай пропорционально
 - Можешь предлагать рецепты, анализировать рацион, отвечать на любые вопросы о питании`;
 }
 
