@@ -533,6 +533,18 @@
             </div>
           </div>
         </div>
+
+        <!-- РИСК СРЫВА -->
+        <div id="riskCard" style="border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:12px;display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800">🔥 Риск срыва</div>
+            <div id="riskLevel" style="font-size:13px;font-weight:700;padding:4px 12px;border-radius:20px"></div>
+          </div>
+          <div id="riskMessage" style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5"></div>
+          <div id="riskReasons" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px"></div>
+          <button id="riskSosBtn" onclick="showSosPlan()" style="display:none;width:100%;padding:11px;border-radius:12px;border:none;background:#f05050;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer">🛟 План спасения</button>
+        </div>
+
         <div class="summary-card">
           <div class="cal-big">
             <div class="cal-num" id="totalCal">0</div>
@@ -542,19 +554,43 @@
           <div class="prog-bar"><div class="prog-fill" id="calProg" style="width:0%"></div></div>
           <div class="macros-row">
             <div class="macro-box">
-              <div class="macro-label">Белки</div>
-              <div class="macro-val p" id="totalP">0</div>
-              <div class="macro-unit">г</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+                <div class="macro-label">Белки</div>
+                <div style="display:flex;align-items:baseline;gap:2px">
+                  <div class="macro-val p" id="totalP">0</div>
+                  <div class="macro-unit">г</div>
+                </div>
+              </div>
+              <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+                <div id="progP" style="height:100%;border-radius:2px;background:var(--protein);width:0%;transition:width .4s;max-width:100%"></div>
+              </div>
+              <div id="remP" style="font-size:10px;color:var(--text2);margin-top:3px;text-align:right">0 г осталось</div>
             </div>
             <div class="macro-box">
-              <div class="macro-label">Жиры</div>
-              <div class="macro-val f" id="totalF">0</div>
-              <div class="macro-unit">г</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+                <div class="macro-label">Жиры</div>
+                <div style="display:flex;align-items:baseline;gap:2px">
+                  <div class="macro-val f" id="totalF">0</div>
+                  <div class="macro-unit">г</div>
+                </div>
+              </div>
+              <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+                <div id="progF" style="height:100%;border-radius:2px;background:var(--fat);width:0%;transition:width .4s;max-width:100%"></div>
+              </div>
+              <div id="remF" style="font-size:10px;color:var(--text2);margin-top:3px;text-align:right">0 г осталось</div>
             </div>
             <div class="macro-box">
-              <div class="macro-label">Углеводы</div>
-              <div class="macro-val c" id="totalC">0</div>
-              <div class="macro-unit">г</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+                <div class="macro-label">Углеводы</div>
+                <div style="display:flex;align-items:baseline;gap:2px">
+                  <div class="macro-val c" id="totalC">0</div>
+                  <div class="macro-unit">г</div>
+                </div>
+              </div>
+              <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+                <div id="progC" style="height:100%;border-radius:2px;background:var(--carb);width:0%;transition:width .4s;max-width:100%"></div>
+              </div>
+              <div id="remC" style="font-size:10px;color:var(--text2);margin-top:3px;text-align:right">0 г осталось</div>
             </div>
           </div>
         </div>
@@ -1563,6 +1599,32 @@ function render() {
   document.getElementById('calProg').style.width = pct + '%';
   document.getElementById('calProg').style.background = pct > 100 ? 'var(--accent3)' : 'var(--cal)';
 
+  // Прогресс-бары БЖУ
+  const macros = [
+    { key:'P', val:totP, goal:goals.p, id:'progP', remId:'remP' },
+    { key:'F', val:totF, goal:goals.f, id:'progF', remId:'remF' },
+    { key:'C', val:totC, goal:goals.c, id:'progC', remId:'remC' },
+  ];
+  const macroColors = { P: 'var(--protein)', F: 'var(--fat)', C: 'var(--carb)' };
+  macros.forEach(m => {
+    const pEl = document.getElementById(m.id);
+    const rEl = document.getElementById(m.remId);
+    if (!pEl || !rEl) return;
+    const eaten = Math.round(m.val);
+    const goal = m.goal;
+    const pct2 = Math.min(100, (eaten / goal) * 100);
+    const rem = goal - eaten;
+    pEl.style.width = pct2 + '%';
+    pEl.style.background = rem < 0 ? 'var(--accent3)' : macroColors[m.key];
+    if (rem > 0) {
+      rEl.textContent = `${rem} г осталось`;
+      rEl.style.color = 'var(--text2)';
+    } else {
+      rEl.textContent = `+${Math.abs(rem)} г перебор`;
+      rEl.style.color = 'var(--accent3)';
+    }
+  });
+
   // ─── ЧИСТЫЕ КАЛОРИИ ──────────────────────────────────────────────────────────
   const profile = loadProfile();
   const sportData = loadSport();
@@ -1656,6 +1718,7 @@ function render() {
 
   renderWeight();
   updateStreakBadge();
+  calcRisk();
 }
 
 function deleteItem(mealId, idx) {
@@ -2992,6 +3055,10 @@ function addFoodItem(mealId, item) {
   render();
   closeModal();
   toast(`${item.name} добавлено ✓`);
+  // Запоминаем дату старта при первом добавлении еды
+  if (!localStorage.getItem('nd_start_date')) {
+    localStorage.setItem('nd_start_date', currentDate);
+  }
   autoSync();
 }
 
@@ -3487,12 +3554,186 @@ function calcSportStreak() {
   return streak;
 }
 
+function showSosPlan() {
+  document.getElementById('sosModal').style.display = 'flex';
+}
+
+function calcRisk() {
+  const data = loadData();
+  const goals = loadGoals();
+  const weights = loadWeights();
+  const sport = loadSport();
+  const card = document.getElementById('riskCard');
+  if (!card) return;
+
+  // Определяем дату старта
+  let startDate = localStorage.getItem('nd_start_date');
+  if (!startDate) {
+    const allDates = Object.keys(data).sort();
+    // Если нет данных питания — берём сегодня как старт
+    startDate = allDates.length ? allDates[0] : todayStr();
+    localStorage.setItem('nd_start_date', startDate);
+  }
+
+  const daysSinceStart = Math.floor((new Date() - new Date(startDate+'T00:00:00')) / 86400000);
+
+  // Меньше 3 дней — приветствие
+  if (daysSinceStart < 3) {
+    card.style.display = 'block';
+    card.style.background = 'rgba(80,200,240,.08)';
+    card.style.borderColor = 'rgba(80,200,240,.3)';
+    document.getElementById('riskLevel').textContent = '👋 День ' + (daysSinceStart + 1);
+    document.getElementById('riskLevel').style.background = 'rgba(80,200,240,.15)';
+    document.getElementById('riskLevel').style.color = 'var(--accent2)';
+    document.getElementById('riskMessage').textContent = 'Анализ риска начнётся на 4-й день. Пока просто записывай питание — это главное.';
+    document.getElementById('riskReasons').innerHTML = `<div style="font-size:12px;color:var(--text2)">• Старт: ${startDate}</div>`;
+    document.getElementById('riskSosBtn').style.display = 'none';
+    return;
+  }
+
+  let score = 0;
+  const reasons = [];
+
+  // Фактор 1: Слишком большой дефицит
+  for (let i = 0; i < 3; i++) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const dd = data[ds]||{};
+    let cal=0, has=false;
+    MEALS.forEach(m=>(dd[m.id]||[]).forEach(item=>{cal+=item.cal;has=true;}));
+    if (has) {
+      const pct = cal/goals.cal;
+      if (pct<0.70){score+=3;reasons.push('Слишком жёсткий дефицит');break;}
+      else if(pct<0.80){score+=2;reasons.push('Большой дефицит калорий');break;}
+    }
+  }
+
+  // Фактор 2: Недобор белка
+  let lpDays=0;
+  for(let i=0;i<2;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    const dd=data[ds]||{};
+    let p=0,has=false;
+    MEALS.forEach(m=>(dd[m.id]||[]).forEach(item=>{p+=item.p;has=true;}));
+    if(has){const pct=p/goals.p;if(pct<0.60)lpDays+=2;else if(pct<0.80)lpDays+=1;}
+  }
+  if(lpDays>=4){score+=2;reasons.push('Недостаточно белка 2 дня подряд');}
+  else if(lpDays>=2){score+=1;reasons.push('Недобор белка');}
+
+  // Фактор 3: Нет записей веса
+  const lastW = weights.length ? new Date(weights[weights.length-1].date+'T00:00:00') : null;
+  if(lastW){
+    const days=Math.floor((new Date()-lastW)/86400000);
+    if(days>=14){score+=3;reasons.push('Вес не записывался 14+ дней');}
+    else if(days>=7){score+=2;reasons.push('Вес не записывался 7+ дней');}
+    else if(days>=3){score+=1;reasons.push('Вес не записывался 3+ дня');}
+  } else {score+=2;reasons.push('Вес ни разу не записан');}
+
+  // Фактор 4: Частые переедания за 7 дней
+  let overDays=0;
+  for(let i=0;i<7;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    const dd=data[ds]||{};
+    let cal=0,has=false;
+    MEALS.forEach(m=>(dd[m.id]||[]).forEach(item=>{cal+=item.cal;has=true;}));
+    if(has&&cal>goals.cal*1.05)overDays++;
+  }
+  if(overDays>=4){score+=3;reasons.push('Частые переедания (4+ дней)');}
+  else if(overDays>=3){score+=2;reasons.push('Частые переедания (3 дня)');}
+  else if(overDays>=2){score+=1;reasons.push('Переедания 2 дня');}
+
+  // Фактор 5: Нет записей питания
+  let missDays=0;
+  for(let i=0;i<3;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    const dd=data[ds]||{};
+    let has=false;
+    MEALS.forEach(m=>{if((dd[m.id]||[]).length)has=true;});
+    if(!has)missDays++;else break;
+  }
+  if(missDays>=3){score+=4;reasons.push('Питание не отслеживается 3 дня');}
+  else if(missDays>=2){score+=2;reasons.push('Питание не отслеживается 2 дня');}
+  else if(missDays>=1){score+=1;reasons.push('Вчера не записывал питание');}
+
+  // Фактор 6: Нет тренировок 7 дней
+  let hasSport=false;
+  for(let i=0;i<7;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    if((sport[ds]||[]).length){hasSport=true;break;}
+  }
+  if(!hasSport){score+=1;reasons.push('Нет физической активности 7 дней');}
+
+  // Фактор 7: Вес растёт
+  if(weights.length>=14){
+    const last7=weights.slice(-7).reduce((s,e)=>s+e.w,0)/7;
+    const prev7=weights.slice(-14,-7).reduce((s,e)=>s+e.w,0)/7;
+    const diff=last7-prev7;
+    if(diff>1){score+=3;reasons.push('Вес вырос на 1+ кг за 2 недели');}
+    else if(diff>0.5){score+=2;reasons.push('Вес растёт');}
+  }
+
+  // Фактор 8: Нарушена привычка
+  const streak=calcFoodStreak();
+  if(streak===0){
+    let prevStreak=0;
+    for(let i=1;i<=30;i++){
+      const d=new Date();d.setDate(d.getDate()-i);
+      const ds=d.toISOString().slice(0,10);
+      const dd=data[ds]||{};
+      let has=false;
+      MEALS.forEach(m=>{if((dd[m.id]||[]).length)has=true;});
+      if(has)prevStreak++;else break;
+    }
+    if(prevStreak>=15){score+=3;reasons.push('Нарушена привычка (был стрик '+prevStreak+' дн.)');}
+  }
+
+  // Отображение
+  const levelEl=document.getElementById('riskLevel');
+  const msgEl=document.getElementById('riskMessage');
+  const reasonsEl=document.getElementById('riskReasons');
+  const sosBtn=document.getElementById('riskSosBtn');
+  if(!card)return;
+
+  card.style.display='block';
+  const uniq=[...new Set(reasons)].slice(0,4);
+
+  if(score<=2){
+    card.style.background='rgba(80,200,80,.08)';card.style.borderColor='rgba(80,200,80,.3)';
+    levelEl.textContent='🟢 Низкий';levelEl.style.background='rgba(80,200,80,.15)';levelEl.style.color='#50c850';
+    msgEl.textContent='Отлично. Ты держишься в рамках плана. Продолжай в том же темпе.';
+    sosBtn.style.display='none';
+  } else if(score<=5){
+    card.style.background='rgba(255,200,0,.08)';card.style.borderColor='rgba(255,200,0,.3)';
+    levelEl.textContent='🟡 Средний';levelEl.style.background='rgba(255,200,0,.15)';levelEl.style.color='#ffc800';
+    msgEl.textContent='Есть тревожные сигналы. Постарайся добрать белок и не создавать слишком большой дефицит.';
+    sosBtn.style.display='none';
+  } else {
+    card.style.background='rgba(240,80,80,.08)';card.style.borderColor='rgba(240,80,80,.3)';
+    levelEl.textContent='🔴 Высокий';levelEl.style.background='rgba(240,80,80,.15)';levelEl.style.color='#f05050';
+    msgEl.textContent='Высокая вероятность срыва. Не ограничивай питание сильнее. Сосредоточься на минимальном плане на 3 дня.';
+    sosBtn.style.display='block';
+  }
+
+  reasonsEl.innerHTML=uniq.map(r=>`<div style="font-size:12px;color:var(--text2);margin-top:2px">• ${r}</div>`).join('');
+
+  // Всегда показываем дату старта и количество дней
+  const startInfo = document.createElement('div');
+  startInfo.style.cssText = 'font-size:11px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)';
+  startInfo.textContent = `📅 Старт: ${startDate} · День ${daysSinceStart + 1}`;
+  reasonsEl.appendChild(startInfo);
+}
+
 function updateStreakBadge() {
   const streak = calcFoodStreak();
   const badge = document.getElementById('streakBadge');
   if (badge) {
-    badge.style.display = streak > 0 ? '' : 'none';
+    badge.style.display = '';
     badge.textContent = `🔥 ${streak}`;
+    badge.style.opacity = streak > 0 ? '1' : '0.5';
   }
   const sd = document.getElementById('currentStreakDisplay');
   if (sd) sd.textContent = streak + ' дн.';
@@ -3661,5 +3902,37 @@ document.getElementById('profileGoal').value = savedProfile.goal || 'подде�
 const latestW = loadWeights();
 if (latestW.length) document.getElementById('profileWeight').value = latestW[latestW.length-1].w;
 </script>
+<!-- SOS PLAN MODAL -->
+<div id="sosModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)">
+  <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 48px;width:100%;max-width:430px">
+    <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px"></div>
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px">🛟 План спасения</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Что нужно сделать сегодня чтобы не сорваться:</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:12px;padding:14px">
+        <span style="font-size:22px">💪</span>
+        <div><div style="font-weight:600;font-size:14px">Добрать белок</div><div style="font-size:12px;color:var(--text2)">Съешь творог, яйца, куриную грудку или рыбу</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:12px;padding:14px">
+        <span style="font-size:22px">🍽</span>
+        <div><div style="font-weight:600;font-size:14px">Не уходи в жёсткий дефицит</div><div style="font-size:12px;color:var(--text2)">Съешь хотя бы 80% от нормы калорий</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:12px;padding:14px">
+        <span style="font-size:22px">⚖️</span>
+        <div><div style="font-weight:600;font-size:14px">Запиши вес сегодня</div><div style="font-size:12px;color:var(--text2)">Контроль веса помогает оставаться в системе</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:12px;padding:14px">
+        <span style="font-size:22px">📝</span>
+        <div><div style="font-weight:600;font-size:14px">Запиши всю еду</div><div style="font-size:12px;color:var(--text2)">Даже небольшой перекус — всё считается</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:12px;padding:14px">
+        <span style="font-size:22px">🏃</span>
+        <div><div style="font-weight:600;font-size:14px">Хотя бы 20 минут активности</div><div style="font-size:12px;color:var(--text2)">Прогулка, зарядка — любое движение помогает</div></div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('sosModal').style.display='none'" style="width:100%;padding:14px;border-radius:12px;border:none;background:var(--accent);color:#000;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;cursor:pointer">Понял, начинаю!</button>
+  </div>
+</div>
+
 </body>
 </html>
