@@ -552,6 +552,7 @@
             <div class="cal-goal" id="calGoalLbl"></div>
           </div>
           <div class="prog-bar"><div class="prog-fill" id="calProg" style="width:0%"></div></div>
+          <div id="calRemLabel" style="font-size:11px;color:var(--text2);margin-top:-10px;margin-bottom:12px;text-align:right"></div>
           <div class="macros-row">
             <div class="macro-box">
               <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
@@ -598,24 +599,22 @@
       </div>
 
       <div id="pageSport" class="page" style="display:none">
-        <div class="section-title">🏋️ Тренировка</div>
-        <div class="weight-card">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Введи калории вручную или опиши тренировку — ИИ посчитает сам.</div>
-          <div class="weight-input-row">
-            <input class="w-input" type="number" id="sportCalInput" placeholder="Ккал (напр. 350)">
-            <button class="w-btn" onclick="addSportCalories()">Добавить</button>
-          </div>
-        </div>
-
         <!-- ИИ АНАЛИЗ ТРЕНИРОВКИ -->
         <div class="section-title">🤖 Анализ тренировки голосом</div>
         <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;margin-bottom:16px">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">Опиши тренировку — ИИ рассчитает потраченные калории с учётом твоего веса</div>
-          <textarea id="sportAiInput" class="form-input" rows="3" placeholder="Например: бегал 40 минут, потом 20 минут силовая тренировка…" style="resize:none;margin-bottom:10px;line-height:1.5;font-size:14px"></textarea>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <button id="sportMicBtn" onclick="toggleSportMic()" style="flex:1;padding:11px;border-radius:12px;border:2px solid var(--accent3);background:rgba(240,80,144,.1);color:var(--accent3);font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px">🎤 Говорить</button>
-            <button onclick="analyzeSportAI()" style="flex:2;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#c8f050,#50f0c8);color:#000;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;font-size:14px" id="sportAiBtn">✨ Рассчитать</button>
+          <div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;line-height:1.6">
+            🎤 Опиши тренировку голосом или текстом — ИИ рассчитает ккал с учётом твоего веса
           </div>
+          <textarea id="sportAiInput" class="form-input" rows="4" placeholder="Например: бегал 40 минут в среднем темпе, потом 20 минут силовая…" style="resize:none;line-height:1.6;margin-bottom:12px"></textarea>
+          <div style="display:flex;gap:10px;margin-bottom:8px">
+            <button class="voice-mic-btn" id="sportMicBtn" onclick="toggleSportMic()">
+              <span id="sportMicIcon">🎤</span>
+              <span id="sportMicLabel">Говорить</span>
+            </button>
+            <button class="voice-clear-btn" onclick="document.getElementById('sportAiInput').value='';document.getElementById('sportAiResult').style.display='none'">✕ Очистить</button>
+          </div>
+          <div class="voice-mic-hint" id="sportMicStatus"></div>
+          <button onclick="analyzeSportAI()" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#c8f050,#50f0c8);color:#000;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;font-size:14px;margin-bottom:10px" id="sportAiBtn">✨ Рассчитать калории</button>
           <div id="sportAiResult" style="display:none;background:var(--surface2);border-radius:12px;padding:14px">
             <div style="font-size:13px;color:var(--text2);margin-bottom:8px">Расчёт ИИ:</div>
             <div id="sportAiText" style="font-size:14px;line-height:1.6;margin-bottom:12px"></div>
@@ -624,6 +623,15 @@
               <div style="font-size:13px;color:var(--text2)">ккал</div>
               <button onclick="addSportFromAI()" style="margin-left:auto;padding:10px 18px;border-radius:10px;border:none;background:var(--accent3);color:#fff;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Добавить</button>
             </div>
+          </div>
+        </div>
+
+        <div class="section-title">🏋️ Тренировка</div>
+        <div class="weight-card">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Или введи калории вручную.</div>
+          <div class="weight-input-row">
+            <input class="w-input" type="number" id="sportCalInput" placeholder="Ккал (напр. 350)">
+            <button class="w-btn" onclick="addSportCalories()">Добавить</button>
           </div>
         </div>
 
@@ -702,26 +710,30 @@
         </div>
       </div>
 
-      <div id="chatView" style="display:none;flex-direction:column;flex:1;overflow:hidden">
-        <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
-          <button onclick="backToChatList()" style="background:none;border:none;color:var(--text2);font-size:26px;cursor:pointer;padding:0;line-height:1;flex-shrink:0">‹</button>
-          <div style="flex:1;min-width:0">
-            <div id="chatTitle" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-            <div id="chatSubtitle" style="font-size:11px;color:var(--text2)"></div>
+      <div id="chatView" style="display:none;flex-direction:column;flex:1;overflow:hidden;margin-bottom:56px">
+        <div style="flex-shrink:0;padding:12px 20px 8px;background:var(--bg)">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+            <button onclick="backToChatList()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0">‹</button>
+            <div style="flex:1;min-width:0">
+              <div id="chatTitle" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+              <div id="chatSubtitle" style="font-size:11px;color:var(--text2)"></div>
+            </div>
+            <button onclick="deleteCurrentChat()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🗑</button>
           </div>
-          <button onclick="deleteCurrentChat()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;flex-shrink:0">🗑</button>
         </div>
         <div id="chatMessages" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none"></div>
-        <div style="flex-shrink:0;padding:10px 12px;border-top:1px solid var(--border);background:var(--surface)">
-          <div style="display:flex;gap:8px;align-items:flex-end">
-            <button id="chatMicBtn" onclick="toggleChatMic()"
-              style="width:42px;height:42px;border-radius:21px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">🎤</button>
+        <div style="flex-shrink:0;padding:8px 20px 10px;background:var(--bg)">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 8px 8px 14px;display:flex;gap:8px;align-items:flex-end">
             <textarea id="chatInput" placeholder="Напиши вопрос…"
-              style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:10px 14px;border-radius:14px;outline:none;resize:none;max-height:90px;line-height:1.4;overflow-y:auto"
+              style="flex:1;background:transparent;border:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:6px 0;outline:none;resize:none;max-height:90px;line-height:1.4;overflow-y:auto"
               rows="1"
               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"></textarea>
-            <button id="chatSendBtn" onclick="sendChatMessage()"
-              style="width:42px;height:42px;border-radius:21px;border:none;background:var(--accent);color:#000;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">↑</button>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+              <button id="chatMicBtn" onclick="toggleChatMic()"
+                style="width:36px;height:36px;border-radius:18px;border:none;background:var(--surface2);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">🎤</button>
+              <button id="chatSendBtn" onclick="sendChatMessage()"
+                style="width:36px;height:36px;border-radius:18px;border:none;background:var(--accent);color:#000;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">↑</button>
+            </div>
           </div>
           <div id="chatMicStatus" style="font-size:11px;color:var(--accent3);margin-top:4px;min-height:14px;text-align:center"></div>
         </div>
@@ -1056,17 +1068,14 @@
 <script>
 // ─── STATE ────────────────────────────────────────────────────────────────────
 const MEALS = [
-  { id:'breakfast', name:'Завтрак', icon:'🌅' },
-  { id:'lunch',     name:'Обед',    icon:'☀️' },
-  { id:'dinner',    name:'Ужин',    icon:'🌙' },
-  { id:'snack',     name:'Перекус', icon:'🍎' },
+  { id:'meal', name:'Съедено за день', icon:'🍽' },
 ];
 
 let currentDate = todayStr();
 let currentAddTab = 0;
-let selectedMealDB = 'breakfast';
-let selectedMealManual = 'breakfast';
-let selectedMealPhoto = 'breakfast';
+let selectedMealDB = 'meal';
+let selectedMealManual = 'meal';
+let selectedMealPhoto = 'meal';
 let selectedDBItem = null;
 let currentTab = 0;
 let photoAnalysisResult = null;
@@ -1597,7 +1606,13 @@ function render() {
   document.getElementById('calGoalLbl').textContent = `/ ${goals.cal} ккал`;
   const pct = Math.min(100, (totCal/goals.cal)*100);
   document.getElementById('calProg').style.width = pct + '%';
-  document.getElementById('calProg').style.background = pct > 100 ? 'var(--accent3)' : 'var(--cal)';
+  document.getElementById('calProg').style.background = pct >= 100 ? 'var(--accent3)' : 'var(--cal)';
+  const calRem = goals.cal - Math.round(totCal);
+  const calRemEl = document.getElementById('calRemLabel');
+  if (calRemEl) {
+    if (calRem > 0) { calRemEl.textContent = `${calRem} ккал осталось`; calRemEl.style.color = 'var(--text2)'; }
+    else { calRemEl.textContent = `+${Math.abs(calRem)} ккал перерасход`; calRemEl.style.color = 'var(--accent3)'; }
+  }
 
   // Прогресс-бары БЖУ
   const macros = [
@@ -1630,20 +1645,26 @@ function render() {
   const sportData = loadSport();
   const todaySport = (sportData[currentDate] || []).reduce((s,e) => s+e.cal, 0);
 
-  // Определяем дефицит цели
   const goalMap = {'похудение':-400,'поддержание':0,'набор массы':+400};
   const goalOffset = goalMap[profile.goal] || 0;
-  const goalNames = {'похудение':'Норма для похудения','поддержание':'Норма для поддержания','набор массы':'Норма для набора массы'};
-  const goalName = goalNames[profile.goal] || 'Норма';
 
-  // Чистыми = норма - съедено + тренировка (тренировка увеличивает бюджет)
-  const net = Math.round(goals.cal - totCal + todaySport);
+  // Считаем TDEE (норма поддержания)
+  const wArr = loadWeights();
+  const ww = wArr.length ? wArr[wArr.length-1].w : null;
+  const age4 = parseFloat(profile.age), ht4 = parseFloat(profile.height);
+  let tdee = goals.cal - goalOffset; // fallback
+  if (ww && age4 && ht4 && profile.gender) {
+    let bmr = profile.gender==='мужской' ? 10*ww+6.25*ht4-5*age4+5 : 10*ww+6.25*ht4-5*age4-161;
+    tdee = Math.round(bmr * ({'низкая':1.2,'средняя':1.55,'высокая':1.725}[profile.activity]||1.55));
+  }
 
-  document.getElementById('ccGoalLabel').textContent = goalName;
-  document.getElementById('ccGoalVal').textContent = goals.cal + ' ккал';
+  // Чистыми = TDEE - съедено + тренировка (без вычитания дефицита)
+  const net = Math.round(tdee - totCal + todaySport);
+
+  document.getElementById('ccGoalLabel').textContent = 'Норма для поддержания';
+  document.getElementById('ccGoalVal').textContent = tdee + ' ккал';
   document.getElementById('ccEaten').textContent = Math.round(totCal) + ' ккал';
 
-  // Тренировка — показываем со знаком +
   const sportRow = document.getElementById('ccSportRow');
   if (todaySport > 0) {
     sportRow.style.display = 'flex';
@@ -1652,7 +1673,6 @@ function render() {
     sportRow.style.display = 'none';
   }
 
-  // Дефицит цели (только если не поддержание)
   const defRow = document.getElementById('ccDeficitRow');
   if (goalOffset !== 0) {
     defRow.style.display = 'flex';
@@ -1662,10 +1682,9 @@ function render() {
     defRow.style.display = 'none';
   }
 
-  // Чистыми
   const netEl = document.getElementById('ccNet');
   netEl.textContent = net + ' ккал';
-  netEl.style.color = net < 0 ? 'var(--accent3)' : net < goals.cal * 0.2 ? 'var(--fat)' : 'var(--cal)';
+  netEl.style.color = net < 0 ? 'var(--accent3)' : net < tdee * 0.15 ? 'var(--fat)' : 'var(--cal)';
 
   // Meals
   const mc = document.getElementById('mealsContainer');
@@ -2299,7 +2318,7 @@ function loadProfile() {
 // ─── AI ADVISOR ───────────────────────────────────────────────────────────────
 let selectedAdvisorTopic = 'general';
 let advisorScope = 'day';
-let advisorMealPick = 'breakfast';
+let advisorMealPick = 'meal';
 
 function setScope(scope) {
   advisorScope = scope;
@@ -2308,7 +2327,7 @@ function setScope(scope) {
 }
 function setMealPick(meal) {
   advisorMealPick = meal;
-  ['breakfast','lunch','dinner','snack'].forEach(m => document.getElementById('mealPick_'+m)?.classList.toggle('active', m===meal));
+  ['meal'].forEach(m => document.getElementById('mealPick_'+m)?.classList.toggle('active', m===meal));
 }
 
 function buildRationSummary() {
@@ -2354,27 +2373,37 @@ let sportAiCalResult = 0;
 
 function toggleSportMic() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { toast('Голосовой ввод недоступен в этом браузере'); return; }
+  if (!SR) { toast('Голосовой ввод не поддерживается — введи текст вручную'); return; }
   if (sportMicRecognition) { sportMicRecognition.stop(); return; }
   sportMicRecognition = new SR();
   sportMicRecognition.lang = 'ru-RU';
-  sportMicRecognition.continuous = false;
-  sportMicRecognition.interimResults = false;
+  sportMicRecognition.continuous = true;
+  sportMicRecognition.interimResults = true;
   sportMicRecognition.onstart = () => {
-    const btn = document.getElementById('sportMicBtn');
-    btn.textContent = '⏹ Стоп'; btn.style.background = 'var(--accent3)'; btn.style.color = '#fff';
+    document.getElementById('sportMicBtn').classList.add('recording');
+    document.getElementById('sportMicIcon').textContent = '⏹';
+    document.getElementById('sportMicLabel').textContent = 'Остановить';
+    document.getElementById('sportMicStatus').textContent = '🔴 Говорите…';
   };
   sportMicRecognition.onresult = e => {
-    const text = e.results[0][0].transcript;
-    const inp = document.getElementById('sportAiInput');
-    inp.value = (inp.value + ' ' + text).trim();
+    let text = '';
+    for (let i=0; i<e.results.length; i++) text += e.results[i][0].transcript;
+    document.getElementById('sportAiInput').value = text;
   };
   sportMicRecognition.onend = () => {
     sportMicRecognition = null;
-    const btn = document.getElementById('sportMicBtn');
-    btn.textContent = '🎤 Говорить'; btn.style.background = ''; btn.style.color = 'var(--accent3)';
+    document.getElementById('sportMicBtn').classList.remove('recording');
+    document.getElementById('sportMicIcon').textContent = '🎤';
+    document.getElementById('sportMicLabel').textContent = 'Говорить';
+    document.getElementById('sportMicStatus').textContent = '✓ Готово — нажми «Рассчитать калории»';
   };
-  sportMicRecognition.onerror = () => { sportMicRecognition = null; };
+  sportMicRecognition.onerror = e => {
+    sportMicRecognition = null;
+    document.getElementById('sportMicBtn').classList.remove('recording');
+    document.getElementById('sportMicIcon').textContent = '🎤';
+    document.getElementById('sportMicLabel').textContent = 'Говорить';
+    document.getElementById('sportMicStatus').textContent = 'Ошибка: ' + e.error;
+  };
   sportMicRecognition.start();
 }
 
@@ -2568,8 +2597,8 @@ ${todayMeals.length ? todayMeals.join('\n') : 'Ничего не записан�
 - ДЛЯ КАЛОРИЙНОСТИ ПРОДУКТОВ: используй ТОЛЬКО базу данных USDA FoodData Central (fdc.nal.usda.gov). Это официальная база Министерства сельского хозяйства США. Никогда не придумывай цифры — только USDA. Если продукта нет в USDA — используй ближайший аналог из той же базы и скажи об этом.
 - ДЛЯ РАСЧЁТА КАЛОРИЙ ТРЕНИРОВОК: используй формулы MET (Metabolic Equivalent of Task) из базы Compendium of Physical Activities (Ainsworth et al.). Всегда учитывай вес пользователя: Калории = MET × вес(кг) × время(ч).
 - Когда предлагаешь блюдо/продукт для добавления в дневник, в конце ответа добавь специальный блок в формате:
-  |||ADD_TO_DIARY|||{"name":"Название блюда","cal":250,"p":15,"f":8,"c":30,"meal":"breakfast"}|||
-  meal может быть: breakfast, lunch, dinner, snack
+  |||ADD_TO_DIARY|||{"name":"Название блюда","cal":250,"p":15,"f":8,"c":30,"meal":"meal"}|||
+  meal всегда: meal
 - КРИТИЧЕСКИ ВАЖНО: в блоке ADD_TO_DIARY ВСЕГДА указывай ВСЕ четыре значения: cal, p, f, c. Никогда не оставляй нули для реальной еды.
 - Если пользователь говорит "добавь", "съел X", "пересчитай" — сразу добавь в дневник
 - Если пользователь говорит что съел то же блюдо но другое количество — пересчитай пропорционально
@@ -2806,21 +2835,16 @@ async function runAIAdvisor() {
   let contextStr = '';
 
   if (advisorScope === 'meal') {
-    // Single meal analysis
-    const mealNames = {breakfast:'Завтрак',lunch:'Обед',dinner:'Ужин',snack:'Перекус'};
     const dayData = data[currentDate] || {};
-    const items = dayData[advisorMealPick] || [];
-    if (!items.length) { toast(`Нет записей в "${mealNames[advisorMealPick]}"`); btn.disabled=false; btnText.textContent='✨ Проанализировать'; return; }
+    const items = dayData['meal'] || [];
+    if (!items.length) { toast('Нет записей питания за сегодня'); btn.disabled=false; btnText.textContent='✨ Проанализировать'; return; }
     const cal = items.reduce((s,i)=>s+i.cal,0);
     const p = items.reduce((s,i)=>s+i.p,0);
     const f = items.reduce((s,i)=>s+i.f,0);
     const c = items.reduce((s,i)=>s+i.c,0);
     const itemsList = items.map(i=>`• ${i.name}${i.grams?` (${Math.round(i.grams)}г)`:''}: ${Math.round(i.cal)} ккал, Б${i.p.toFixed(1)}г Ж${i.f.toFixed(1)}г У${i.c.toFixed(1)}г`).join('\n');
-    // Остаток дня
-    let dayTotal = {cal:0,p:0,f:0,c:0};
-    MEALS.forEach(m => { (dayData[m.id]||[]).forEach(item=>{dayTotal.cal+=item.cal;dayTotal.p+=item.p;dayTotal.f+=item.f;dayTotal.c+=item.c;}); });
-    dataStr = `Приём пищи: ${mealNames[advisorMealPick]}\nСостав:\n${itemsList}\nИтого: ${Math.round(cal)} ккал, Б${p.toFixed(1)}г Ж${f.toFixed(1)}г У${c.toFixed(1)}г`;
-    contextStr = `Уже съедено за весь день: ${Math.round(dayTotal.cal)} ккал из ${goals.cal} ккал (осталось ${Math.round(goals.cal-dayTotal.cal)} ккал)`;
+    dataStr = `Съедено за день:\n${itemsList}\nИтого: ${Math.round(cal)} ккал, Б${p.toFixed(1)}г Ж${f.toFixed(1)}г У${c.toFixed(1)}г`;
+    contextStr = `Цель дня: ${goals.cal} ккал (осталось ${Math.round(goals.cal-cal)} ккал)`;
   } else if (advisorScope === 'day') {
     const dayData = data[currentDate] || {};
     let items = [];
@@ -2957,14 +2981,14 @@ function switchAddTab(i) {
 }
 
 function buildMealSelects() {
+  // Один приём пищи — скрываем выбор, просто показываем label
   ['DB','Manual','Photo','Voice'].forEach(type => {
     const el = document.getElementById('mealSelect'+type);
     if (!el) return;
-    const sel = type==='DB' ? selectedMealDB : type==='Manual' ? selectedMealManual : type==='Photo' ? selectedMealPhoto : selectedMealVoice;
-    el.innerHTML = MEALS.map(m =>
-      `<div class="meal-opt ${sel===m.id?'sel':''}" onclick="setMealSel('${type}','${m.id}')">${m.icon} ${m.name}</div>`
-    ).join('');
+    el.innerHTML = `<div class="meal-opt sel" style="grid-column:1/-1">🍽 Съедено за день</div>`;
   });
+  // Всегда 'meal'
+  selectedMealDB = selectedMealManual = selectedMealPhoto = selectedMealVoice = 'meal';
 }
 function setMealSel(type, id) {
   if (type==='DB') selectedMealDB=id;
